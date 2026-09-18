@@ -1,0 +1,6 @@
+{
+  "name": "Helix OS",
+  "description": "Web-based desktop environment with Alpine Linux host engine, virtual file system, terminal, code editor, and app store.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

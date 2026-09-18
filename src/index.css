@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg: #07080b;
+    --panel-solid: #12141b;
+    --line: rgba(255, 255, 255, 0.08);
+    --text: #edf1f7;
+    --accent: #6ee7b7;
+    --muted: #8b93a7;
+    --danger: #ff6b7a;
+    --warn: #fbbf24;
+    --font-scale: 1.0;
+    --ui-scale: 1.0;
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    min-height: 100dvh;
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    user-select: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+    font-size: calc(14px * var(--font-scale, 1.0));
+  }
+
+  /* High contrast accessibility override */
+  html.high-contrast {
+    --line: rgba(255, 255, 255, 0.25);
+    --muted: #cbd5e1;
+    --text: #ffffff;
+  }
+
+  /* Prevent mobile browser auto-zoom jump on inputs */
+  @media screen and (max-width: 768px) {
+    input, textarea, select {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Custom subtle scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+  }
+
+  /* Smooth touch scrolling */
+  .overflow-y-auto, .overflow-x-auto, .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}

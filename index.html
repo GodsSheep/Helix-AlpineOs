@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#07080B" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Helix OS" />
+    <meta name="format-detection" content="telephone=no" />
+    <title>Helix OS</title>
+    <meta name="description" content="Web-based desktop environment with Alpine Linux host engine, virtual file system, terminal, code editor, and app store." />
+    <meta property="og:title" content="Helix OS" />
+    <meta property="og:description" content="Web-based desktop environment with Alpine Linux host engine, virtual file system, terminal, code editor, and app store." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
+    <!-- V86 Emulator -->
+    <script src="/v86/libv86.js"></script>
+    <style>
+      :root {
+        --sat: env(safe-area-inset-top, 0px);
+        --sab: env(safe-area-inset-bottom, 0px);
+        --sal: env(safe-area-inset-left, 0px);
+        --sar: env(safe-area-inset-right, 0px);
+      }
+      html, body, #root {
+        width: 100%;
+        height: 100%;
+        height: 100dvh;
+        min-height: 100dvh;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+    </style>
+  </head>
+  <body class="bg-[#07080B] text-[#edf1f7] overflow-hidden select-none touch-manipulation">
+    <div id="root" class="w-full h-full min-h-[100dvh]"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
