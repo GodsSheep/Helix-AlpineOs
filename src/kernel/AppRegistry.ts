@@ -11,6 +11,7 @@ export class AppRegistry {
       width: 680,
       height: 520,
       pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-amber-600/35 to-yellow-500/20 border-amber-500/30 text-amber-200'
     },
     {
       id: 'term',
@@ -21,6 +22,7 @@ export class AppRegistry {
       width: 540,
       height: 380,
       pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-zinc-900 to-zinc-700/50 border-zinc-500/30 text-emerald-400 font-mono'
     },
     {
       id: 'edit',
@@ -31,6 +33,7 @@ export class AppRegistry {
       width: 580,
       height: 440,
       pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-indigo-600/30 to-blue-500/20 border-indigo-500/30 text-indigo-300'
     },
     {
       id: 'store',
@@ -41,6 +44,7 @@ export class AppRegistry {
       width: 460,
       height: 460,
       pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-purple-600/35 to-pink-500/20 border-purple-500/30 text-purple-300'
     },
     {
       id: 'mon',
@@ -51,6 +55,7 @@ export class AppRegistry {
       width: 380,
       height: 300,
       pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-rose-600/30 to-red-400/20 border-rose-500/30 text-rose-300'
     },
     {
       id: 'files',
@@ -61,6 +66,7 @@ export class AppRegistry {
       width: 580,
       height: 420,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-sky-600/35 to-cyan-500/20 border-sky-500/30 text-sky-300'
     },
     {
       id: 'settings',
@@ -71,47 +77,51 @@ export class AppRegistry {
       width: 620,
       height: 480,
       pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-neutral-700/40 to-neutral-500/20 border-neutral-400/30 text-gray-200'
     },
-    // 10 Powerful Alpine Apps
     {
       id: 'netscan',
       title: 'Network Diagnostics',
-      icon: '🌐',
+      icon: '📡',
       category: 'Utilities',
       description: 'Ping, traceroute simulation, DNS lookup, and active port scan.',
       width: 600,
       height: 420,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-emerald-600/35 to-teal-400/20 border-emerald-500/30 text-emerald-300'
     },
     {
       id: 'apkman',
       title: 'APK Package Manager',
-      icon: '📦',
+      icon: '📥',
       category: 'Utilities',
       description: 'Advanced APK package repo manager to install & update tools.',
       width: 620,
       height: 460,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-fuchsia-600/35 to-pink-500/20 border-fuchsia-500/30 text-fuchsia-300'
     },
     {
       id: 'syslog',
       title: 'Kernel Log Viewer',
-      icon: '📜',
+      icon: '🪵',
       category: 'System',
       description: 'Real-time kernel dmesg logs, system events and filtering.',
       width: 600,
       height: 400,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-amber-700/35 to-orange-500/20 border-amber-500/30 text-amber-200'
     },
     {
       id: 'procman',
       title: 'Process Manager',
-      icon: '⚡',
+      icon: '🔋',
       category: 'System',
       description: 'Task manager with CPU/RAM metrics and process signal controls.',
       width: 580,
       height: 400,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-red-600/30 to-orange-400/20 border-red-500/30 text-red-300'
     },
     {
       id: 'sqlclient',
@@ -122,6 +132,7 @@ export class AppRegistry {
       width: 600,
       height: 420,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-blue-700/30 to-cyan-500/20 border-blue-500/30 text-blue-300'
     },
     {
       id: 'docviewer',
@@ -132,6 +143,7 @@ export class AppRegistry {
       width: 620,
       height: 440,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-yellow-700/30 to-lime-600/15 border-yellow-500/20 text-yellow-300'
     },
     {
       id: 'envmgr',
@@ -142,6 +154,7 @@ export class AppRegistry {
       width: 560,
       height: 380,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-rose-700/35 to-violet-500/20 border-rose-500/30 text-rose-300'
     },
     {
       id: 'browser',
@@ -152,6 +165,7 @@ export class AppRegistry {
       width: 620,
       height: 440,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-cyan-600/35 to-blue-500/20 border-cyan-500/30 text-cyan-300'
     },
     {
       id: 'diskanalyzer',
@@ -162,6 +176,7 @@ export class AppRegistry {
       width: 580,
       height: 400,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-teal-700/35 to-emerald-500/20 border-teal-500/30 text-teal-300'
     },
     {
       id: 'soundmixer',
@@ -172,17 +187,18 @@ export class AppRegistry {
       width: 500,
       height: 420,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-indigo-700/35 to-purple-500/20 border-indigo-500/30 text-indigo-300'
     },
-    // Powerful New Linux Utilities & Profilers
     {
       id: 'neofetch',
       title: 'Neofetch System Profiler',
-      icon: '🖥️',
+      icon: '💡',
       category: 'System',
       description: 'Alpine Linux hardware profiler, CPU architecture specs and uptime stats.',
       width: 600,
       height: 440,
       pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-indigo-600/30 to-rose-500/20 border-indigo-500/30 text-indigo-300'
     },
     {
       id: 'taskscheduler',
@@ -193,36 +209,40 @@ export class AppRegistry {
       width: 620,
       height: 480,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-violet-700/35 to-purple-500/20 border-violet-500/30 text-violet-300'
     },
     {
       id: 'hexedit',
       title: 'Binary Hex Inspector',
-      icon: '🔢',
+      icon: '⬡',
       category: 'Development',
       description: 'Hexadecimal file inspector, binary byte editor and ASCII decoder.',
       width: 640,
       height: 460,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-zinc-800 to-red-950/60 border-red-500/30 text-red-400'
     },
     {
       id: 'benchmark',
       title: 'Hardware Benchmark',
-      icon: '⚡',
+      icon: '📏',
       category: 'System',
       description: 'CPU FLOPS, WASM memory throughput and VFS storage benchmark suite.',
       width: 620,
       height: 460,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-amber-600/35 to-rose-500/25 border-amber-500/30 text-amber-300'
     },
     {
       id: 'rustcpp',
       title: 'Rust & C++ Native Studio',
-      icon: '⚡',
+      icon: '🦀',
       category: 'Development',
       description: 'Zero-latency local Rust 1.76 & C++23 WASM compiler, hardware profiler & vector execution engine.',
       width: 780,
       height: 560,
       pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-orange-600/40 to-sky-500/30 border-orange-500/40 text-orange-300'
     },
     {
       id: 'guistudio',
@@ -233,26 +253,29 @@ export class AppRegistry {
       width: 780,
       height: 560,
       pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-fuchsia-600/40 to-violet-500/30 border-fuchsia-500/40 text-fuchsia-300'
     },
     {
       id: 'pythonshowcase',
       title: 'Python 3 Studio & Showcase',
-      icon: '🐍',
+      icon: '📜',
       category: 'Development',
       description: 'Unified Python 3.12 execution engine, standard library REPL, multi-framework GUI gallery & screen converter.',
       width: 780,
       height: 560,
       pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-blue-600/40 to-yellow-500/30 border-blue-500/40 text-yellow-300'
     },
     {
       id: 'asynciomonitor',
       title: 'Async 9P I/O Monitor',
-      icon: '⚙️',
+      icon: '🔄',
       category: 'System',
       description: 'Dedicated asynchronous I/O worker thread monitor for V86 9P VFS mount operations.',
       width: 660,
       height: 480,
       pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-cyan-600/40 to-teal-500/30 border-cyan-500/40 text-cyan-300'
     },
     {
       id: 'firewall',
@@ -263,16 +286,18 @@ export class AppRegistry {
       width: 640,
       height: 460,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-red-700/30 to-rose-500/20 border-red-500/30 text-red-300'
     },
     {
       id: 'services',
       title: 'OpenRC Services',
-      icon: '⚙️',
+      icon: '🛠️',
       category: 'System',
       description: 'OpenRC init service manager, runlevels, and daemon controls.',
       width: 680,
       height: 480,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-teal-600/30 to-emerald-400/20 border-teal-500/30 text-teal-300'
     },
     {
       id: 'calc',
@@ -283,6 +308,7 @@ export class AppRegistry {
       width: 540,
       height: 480,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-slate-600/35 to-neutral-500/20 border-slate-500/30 text-slate-300'
     },
     {
       id: 'paint',
@@ -293,6 +319,18 @@ export class AppRegistry {
       width: 640,
       height: 520,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-pink-600/35 to-yellow-500/25 border-pink-500/30 text-pink-300'
+    },
+    {
+      id: 'hotshot',
+      title: 'Hotshot Capture',
+      icon: '📸',
+      category: 'Utilities',
+      description: 'System-wide high-fidelity screen capture, annotation overlays, and markup editors.',
+      width: 680,
+      height: 520,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-cyan-600/35 to-emerald-400/20 border-cyan-500/30 text-cyan-300'
     },
     {
       id: 'ssh',
@@ -303,6 +341,7 @@ export class AppRegistry {
       width: 620,
       height: 440,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-neutral-900 to-indigo-900/60 border-indigo-500/30 text-indigo-300'
     },
     {
       id: 'archive',
@@ -313,6 +352,7 @@ export class AppRegistry {
       width: 600,
       height: 420,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-amber-700/35 to-yellow-650/20 border-amber-500/30 text-yellow-300'
     },
     {
       id: 'hardware',
@@ -323,6 +363,7 @@ export class AppRegistry {
       width: 640,
       height: 460,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-red-600/30 to-yellow-500/20 border-red-500/30 text-yellow-300'
     },
     {
       id: 'diff',
@@ -333,6 +374,7 @@ export class AppRegistry {
       width: 640,
       height: 440,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-green-700/20 to-red-700/20 border-neutral-500/20 text-white'
     },
     {
       id: 'clipboard',
@@ -343,8 +385,8 @@ export class AppRegistry {
       width: 560,
       height: 420,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-sky-600/35 to-indigo-500/20 border-sky-500/30 text-sky-300'
     },
-    // Complete Linux Games Collection (10 Games)
     {
       id: 'game-racer',
       title: 'Alpine Highway Racer',
@@ -354,6 +396,7 @@ export class AppRegistry {
       width: 420,
       height: 540,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-red-600/40 to-yellow-500/30 border-red-500/35 text-red-200'
     },
     {
       id: 'game-hacker',
@@ -364,6 +407,7 @@ export class AppRegistry {
       width: 480,
       height: 420,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-emerald-950/90 to-emerald-800/40 border-emerald-500/40 text-emerald-400 font-mono'
     },
     {
       id: 'game-2048',
@@ -374,6 +418,7 @@ export class AppRegistry {
       width: 400,
       height: 460,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-amber-500/40 to-orange-500/30 border-amber-400/40 text-amber-200'
     },
     {
       id: 'game-tetris',
@@ -384,6 +429,7 @@ export class AppRegistry {
       width: 380,
       height: 520,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-indigo-600/40 to-pink-500/30 border-indigo-500/40 text-pink-300'
     },
     {
       id: 'game-minesweeper',
@@ -394,6 +440,7 @@ export class AppRegistry {
       width: 400,
       height: 440,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-neutral-800/80 to-neutral-600/40 border-neutral-500/30 text-gray-300'
     },
     {
       id: 'game-snake',
@@ -404,6 +451,7 @@ export class AppRegistry {
       width: 420,
       height: 480,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-green-600/40 to-lime-500/30 border-green-500/45 text-green-300'
     },
     {
       id: 'game-spaceinvaders',
@@ -414,6 +462,7 @@ export class AppRegistry {
       width: 460,
       height: 500,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-indigo-900/80 to-purple-800/40 border-indigo-500/30 text-indigo-300'
     },
     {
       id: 'game-pong',
@@ -424,6 +473,7 @@ export class AppRegistry {
       width: 480,
       height: 420,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-slate-800 to-slate-600/40 border-slate-500/30 text-white'
     },
     {
       id: 'game-memory',
@@ -434,6 +484,7 @@ export class AppRegistry {
       width: 440,
       height: 460,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-violet-600/40 to-pink-500/30 border-violet-500/40 text-pink-300'
     },
     {
       id: 'game-wordle',
@@ -444,16 +495,18 @@ export class AppRegistry {
       width: 440,
       height: 520,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-emerald-600/40 to-yellow-500/30 border-emerald-500/40 text-yellow-100'
     },
     {
       id: 'guirunner',
       title: 'Helix GUI Studio & X11 Server',
-      icon: '🖥️',
+      icon: '🏃',
       category: 'Development',
       description: 'Run any Python GUI (Tkinter, PySimpleGUI, Turtle, WebGUI) & Linux Zenity dialogs directly on Helix DE with virtual X11 display server :0.0.',
       width: 760,
       height: 540,
       pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-blue-600/35 to-indigo-500/20 border-blue-500/30 text-blue-300'
     },
     {
       id: 'gui-window',
@@ -464,6 +517,18 @@ export class AppRegistry {
       width: 480,
       height: 400,
       pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-slate-700/45 to-slate-500/20 border-slate-400/30 text-slate-100'
+    },
+    {
+      id: 'netmaster',
+      title: 'Helix NetMaster',
+      icon: '🌐',
+      category: 'Utilities',
+      description: 'Advanced VPN tunnels, SOCKS5/HTTP proxies, & Wi-Fi hotspot AP manager.',
+      width: 720,
+      height: 520,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-cyan-600/35 to-blue-500/25 border-cyan-500/30 text-cyan-300'
     },
   ];
 

@@ -36,6 +36,7 @@ import { FirewallApp } from './components/apps/FirewallApp';
 import { ServicesApp } from './components/apps/ServicesApp';
 import { CalculatorApp } from './components/apps/CalculatorApp';
 import { PaintApp } from './components/apps/PaintApp';
+import { HotshotApp } from './components/apps/HotshotApp';
 import { SshClientApp } from './components/apps/SshClientApp';
 import { ArchiveApp } from './components/apps/ArchiveApp';
 import { HardwareInfoApp } from './components/apps/HardwareInfoApp';
@@ -56,11 +57,14 @@ import { GuiRunnerApp } from './components/apps/GuiRunnerApp';
 import { UniversalGuiStudioApp } from './components/apps/UniversalGuiStudioApp';
 import { RustCppStudioApp } from './components/apps/RustCppStudioApp';
 import { DynamicGuiWindow } from './components/apps/DynamicGuiWindow';
+import { NetworkMasterApp } from './components/apps/NetworkMasterApp';
 import { DesktopContextMenu } from './components/DesktopContextMenu';
 import { Settings, HelixSettings } from './kernel/Settings';
+import { Power, RefreshCw } from 'lucide-react';
 
 export default function App() {
   const [isBooted, setIsBooted] = useState(false);
+  const [isSystemHalted, setIsSystemHalted] = useState(false);
   const [windows, setWindows] = useState<WindowInstance[]>([]);
   const [activeWindowId, setActiveWindowId] = useState<string | null>(null);
   const [isLauncherOpen, setIsLauncherOpen] = useState(false);
@@ -74,6 +78,7 @@ export default function App() {
   const desktopHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const desktopHoldStart = useRef<{ x: number; y: number } | null>(null);
   const touchStartEdge = useRef<{ x: number; y: number; edge: 'top' | 'bottom' | 'none' } | null>(null);
+  const lastShortcutClick = useRef<{ id: string; time: number }>({ id: '', time: 0 });
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const resizeDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -119,11 +124,28 @@ export default function App() {
       setActiveWindowId(Kernel.wm.getActiveId());
     });
 
+    const unsubVM = Kernel.vm.onStateChange((state) => {
+      if (state === 'stopped') {
+        setIsSystemHalted(true);
+      }
+    });
+
     const handleKeyDown = (e: KeyboardEvent) => {
       // Alt+Z or F11 toggles Zen / Screen space mode
       if ((e.altKey && e.key.toLowerCase() === 'z') || e.key === 'F11') {
         e.preventDefault();
         setIsZenMode((prev) => !prev);
+      }
+
+      // Alt+S or PrintScreen key triggers Hotshot screenshot capture
+      if ((e.altKey && e.key.toLowerCase() === 's') || e.key === 'PrintScreen') {
+        e.preventDefault();
+        Kernel.wm.launch('hotshot');
+        setTimeout(() => {
+          if (typeof (window as any).__triggerHotshotCapture === 'function') {
+            (window as any).__triggerHotshotCapture();
+          }
+        }, 400);
       }
     };
 
@@ -166,6 +188,7 @@ export default function App() {
     return () => {
       unsubWM();
       unsubSettings();
+      unsubVM();
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('touchstart', handleGlobalTouchStart);
       window.removeEventListener('touchend', handleGlobalTouchEnd);
@@ -221,6 +244,7 @@ export default function App() {
       case 'services': return <ServicesApp />;
       case 'calc': return <CalculatorApp />;
       case 'paint': return <PaintApp />;
+      case 'hotshot': return <HotshotApp />;
       case 'ssh': return <SshClientApp />;
       case 'archive': return <ArchiveApp />;
       case 'hardware': return <HardwareInfoApp />;
@@ -240,13 +264,24 @@ export default function App() {
       case 'guirunner': return <UniversalGuiStudioApp />;
       case 'pythonshowcase': return <PythonShowcaseApp />;
       case 'asynciomonitor': return <AsyncIOManagerApp />;
+      case 'netmaster': return <NetworkMasterApp />;
       case 'gui-window': return <DynamicGuiWindow guiId={win.args?.guiId as string} args={win.args} />;
       default: return <TerminalApp />;
     }
   };
 
   const getWallpaperBackground = () => {
-    if (settings.customWallpaperUrl) {
+    const urlMap: Record<string, string> = {
+      'mesh-emerald': 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2000&q=80',
+      'cyber-dark': 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=2000&q=80',
+      'nord-aurora': 'https://images.unsplash.com/photo-1517411032315-54ef2cb783bb?auto=format&fit=crop&w=2000&q=80',
+      'deep-nebula': 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=2000&q=80',
+      'minimal-slate': 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=2000&q=80',
+    };
+
+    const targetUrl = settings.customWallpaperUrl || urlMap[settings.wallpaperPreset];
+
+    if (targetUrl) {
       let size = 'cover';
       let repeat = 'no-repeat';
       let position = 'center';
@@ -264,13 +299,14 @@ export default function App() {
       }
 
       return {
-        backgroundImage: `url("${settings.customWallpaperUrl}")`,
+        backgroundImage: `url("${targetUrl}")`,
         backgroundSize: size,
         backgroundRepeat: repeat as any,
         backgroundPosition: position,
         backgroundColor: color,
       };
     }
+
     switch (settings.wallpaperPreset) {
       case 'gradient-tokyo':
         return { background: 'radial-gradient(ellipse at top, #24283b 0%, #1a1b26 100%)' };
@@ -291,12 +327,18 @@ export default function App() {
     <div
       ref={mainContainerRef}
       className="fixed inset-0 text-[#edf1f7] font-sans select-none overflow-hidden flex flex-col"
-      style={getWallpaperBackground()}
     >
+      {/* Background Wallpaper Layer (Completely separate for performance and custom fits) */}
+      <div 
+        id="desktop-background-layer"
+        className="absolute inset-0 z-0 pointer-events-none transition-all duration-500" 
+        style={getWallpaperBackground()} 
+      />
+
       {!isBooted && <BootScreen onBootComplete={handleBootComplete} />}
 
       {/* Lightweight GPU-friendly decorative backdrop */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-[1]">
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -381,6 +423,15 @@ export default function App() {
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedShortcutId(appId);
+
+                  // Double click or fast double tap detection
+                  const now = Date.now();
+                  if (lastShortcutClick.current.id === appId && now - lastShortcutClick.current.time < 350) {
+                    Kernel.wm.launch(appId as any);
+                    lastShortcutClick.current = { id: '', time: 0 };
+                  } else {
+                    lastShortcutClick.current = { id: appId, time: now };
+                  }
                 }}
                 onContextMenu={(e) => {
                   e.preventDefault();
@@ -388,14 +439,16 @@ export default function App() {
                   setSelectedShortcutId(appId);
                   setContextMenuPos({ x: e.clientX, y: e.clientY, type: 'shortcut-' + appId });
                 }}
-                className={`w-20 h-20 flex flex-col items-center justify-center rounded-xl p-2 transition duration-150 cursor-pointer pointer-events-auto border ${
+                className={`w-20 h-22 flex flex-col items-center justify-center rounded-2xl p-2.5 transition duration-150 cursor-pointer pointer-events-auto border ${
                   isSelected 
-                    ? 'bg-white/15 border-[#6ee7b7]/60 text-white shadow-lg shadow-black/40' 
-                    : 'bg-transparent border-transparent hover:bg-white/5 active:bg-white/10 text-gray-200'
+                    ? 'bg-[#12141c]/65 border-[#6ee7b7]/60 text-white shadow-xl shadow-black/50 scale-105' 
+                    : 'bg-[#12141c]/30 border-white/5 hover:bg-white/5 active:bg-white/10 text-gray-200'
                 }`}
               >
-                <span className="text-3xl select-none filter drop-shadow-sm leading-none">{appDef.icon}</span>
-                <span className="text-[10px] font-medium font-mono truncate w-full text-center mt-1.5 px-0.5 select-none drop-shadow-md">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-2xl border mb-1.5 shadow-md ${appDef.iconBg || 'bg-white/5 border-white/10'}`}>
+                  <span className="select-none filter drop-shadow-md leading-none">{appDef.icon}</span>
+                </div>
+                <span className="text-[10px] font-semibold font-mono truncate w-full text-center px-0.5 select-none drop-shadow-lg text-white">
                   {appDef.title}
                 </span>
               </div>
@@ -470,6 +523,40 @@ export default function App() {
         isLauncherOpen={isLauncherOpen}
         isZenMode={isZenMode}
       />
+
+      {isSystemHalted && (
+        <div className="fixed inset-0 bg-[#07080c] flex flex-col items-center justify-center z-[9999] transition-all duration-700 animate-fade-in text-gray-200">
+          <div className="max-w-md w-full p-8 rounded-3xl bg-[#0f111a] border border-white/5 shadow-2xl flex flex-col items-center text-center space-y-6">
+            <div className="w-16 h-16 rounded-full bg-red-500/15 text-red-400 border border-red-500/30 flex items-center justify-center animate-pulse">
+              <Power className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-xl font-bold font-mono tracking-wide text-white">Helix Alpine OS Halted</h1>
+              <p className="text-xs text-gray-400 leading-relaxed font-mono">
+                System power-down sequence complete.<br />
+                All microVM JIT memory blocks flushed.
+              </p>
+            </div>
+            <div className="w-full bg-black/40 border border-white/5 rounded-xl p-3.5 text-[10px] text-left font-mono space-y-1 text-gray-500 max-h-36 overflow-y-auto">
+              <div>[    0.000000] ACPI: Preparing to enter system S5 state</div>
+              <div>[    0.003412] reboot: Power down</div>
+              <div>[    0.010512] System halted (S5 S-STATE transition successful)</div>
+              <div>[    0.012301] Helix kernel deactivated. VM stopped.</div>
+            </div>
+            <button
+              onClick={async () => {
+                setIsSystemHalted(false);
+                setIsBooted(false); // triggers bootscreen!
+                await Kernel.vm.start();
+              }}
+              className="w-full py-2.5 rounded-xl bg-[#6ee7b7] text-black hover:bg-[#5cd4a5] font-bold text-xs transition duration-200 cursor-pointer shadow-md shadow-[#6ee7b7]/15 flex items-center justify-center gap-1.5"
+            >
+              <RefreshCw className="w-4 h-4 animate-spin-reverse" />
+              <span>Power On / Boot OS</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

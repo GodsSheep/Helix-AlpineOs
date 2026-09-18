@@ -372,6 +372,17 @@ export const SettingsApp: React.FC = () => {
                       {settings.accentColorHex === c.hex && <Check className="w-3 h-3 text-[#6ee7b7]" />}
                     </button>
                   ))}
+                  
+                  {/* Custom Color Input */}
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5">
+                    <span className="text-xs text-gray-400">Custom:</span>
+                    <input
+                      type="color"
+                      value={settings.accentColorHex || '#6ee7b7'}
+                      onChange={(e) => handleUpdate({ accentColorHex: e.target.value })}
+                      className="w-6 h-6 rounded-full cursor-pointer bg-transparent border-0"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -783,31 +794,132 @@ export const SettingsApp: React.FC = () => {
                 </div>
               </div>
 
-              {/* Power Control Buttons */}
-              <div className="p-4 rounded-2xl bg-[#141724] border border-white/10 space-y-3">
-                <h3 className="font-bold text-white text-sm">MicroVM Power Controls</h3>
-                <div className="flex flex-wrap gap-2.5">
-                  <button
-                    onClick={() => Kernel.vm.executeCommand('reboot')}
-                    className="px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 flex items-center gap-1.5 font-semibold text-xs transition"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Reboot Alpine</span>
-                  </button>
-                  <button
-                    onClick={() => Kernel.vm.executeCommand('poweroff')}
-                    className="px-3.5 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30 flex items-center gap-1.5 font-semibold text-xs transition"
-                  >
-                    <Power className="w-3.5 h-3.5" />
-                    <span>Halt / Poweroff</span>
-                  </button>
-                  <button
-                    onClick={() => Kernel.vm.executeCommand('systemctl suspend')}
-                    className="px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border border-blue-500/30 flex items-center gap-1.5 font-semibold text-xs transition"
-                  >
-                    <Moon className="w-3.5 h-3.5" />
-                    <span>Suspend VM</span>
-                  </button>
+              {/* Sophisticated Power & System Lifecycle Controls */}
+              <div className="p-5 rounded-2xl bg-[#141724] border border-white/10 space-y-4">
+                <div>
+                  <h3 className="font-bold text-white text-sm">Advanced System Power Controls</h3>
+                  <p className="text-[11px] text-gray-400">
+                    Manage the lifecycle states of both the underlying Alpine Linux MicroVM and the Helix Desktop Environment (Compositor)
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {/* Alpine VM Card */}
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-3 flex flex-col justify-between">
+                    <div>
+                      <div className="font-bold text-white flex items-center gap-1.5 text-xs">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>Alpine Linux MicroVM</span>
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-1 leading-relaxed">
+                        Control the lifecycle of the host Alpine x86_64 virtualization layer running OpenRC & musl libc.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <button
+                        onClick={async () => {
+                          SoundManager.play('click');
+                          notify('Rebooting Alpine Linux MicroVM...');
+                          Kernel.vm.stop();
+                          await new Promise(r => setTimeout(r, 800));
+                          await Kernel.vm.start();
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 flex items-center gap-1.5 font-bold text-[10px] transition cursor-pointer"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Reboot VM</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          SoundManager.play('click');
+                          notify('Halt sequence initiated...');
+                          Kernel.vm.stop();
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 flex items-center gap-1.5 font-bold text-[10px] transition cursor-pointer"
+                      >
+                        <Power className="w-3 h-3" />
+                        <span>Halt / Poweroff</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Helix DE Card */}
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-3 flex flex-col justify-between">
+                    <div>
+                      <div className="font-bold text-white flex items-center gap-1.5 text-xs">
+                        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                        <span>Helix Desktop Environment</span>
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-1 leading-relaxed">
+                        Control the graphical desktop layer, compositor server, and application state managers.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <button
+                        onClick={() => {
+                          SoundManager.play('click');
+                          notify('Restarting Helix compositor...');
+                          setTimeout(() => window.location.reload(), 600);
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/20 flex items-center gap-1.5 font-bold text-[10px] transition cursor-pointer"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Restart Desktop</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          SoundManager.play('click');
+                          notify('Suspending system services...');
+                          Kernel.vm.executeCommand('systemctl suspend');
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/20 flex items-center gap-1.5 font-bold text-[10px] transition cursor-pointer"
+                      >
+                        <Moon className="w-3 h-3" />
+                        <span>Suspend Session</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Unified Controls Card */}
+                  <div className="p-4 rounded-xl bg-[#1e1c15] border border-amber-500/10 space-y-3 md:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-bold text-amber-300 flex items-center gap-1.5 text-xs">
+                          <Zap className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Unified Full-System Actions</span>
+                        </div>
+                        <p className="text-[10px] text-gray-300 mt-1 leading-relaxed">
+                          Synchronize power operations across both Alpine Linux and the Helix window manager for complete system cycles.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2.5 pt-1.5 border-t border-amber-500/5">
+                      <button
+                        onClick={async () => {
+                          SoundManager.play('click');
+                          notify('Initiating complete cold reboot...');
+                          Kernel.vm.stop();
+                          await new Promise(r => setTimeout(r, 600));
+                          window.location.reload();
+                        }}
+                        className="px-3 py-2 rounded-xl bg-amber-500 text-black hover:bg-amber-400 flex items-center gap-1.5 font-bold text-xs transition cursor-pointer shadow-md shadow-amber-500/5"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Restart Both Systems</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          SoundManager.play('click');
+                          notify('Unified shutdown sequence active...');
+                          Kernel.vm.stop();
+                        }}
+                        className="px-3 py-2 rounded-xl bg-red-500 hover:bg-red-400 text-white flex items-center gap-1.5 font-bold text-xs transition cursor-pointer shadow-md shadow-red-500/5"
+                      >
+                        <Power className="w-3.5 h-3.5" />
+                        <span>Shut Down Both Systems</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

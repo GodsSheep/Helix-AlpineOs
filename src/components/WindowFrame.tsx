@@ -290,12 +290,12 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
         }
       }}
       className={`bg-[#12141c] rounded-2xl flex flex-col overflow-hidden shadow-2xl border ${
-        isTransforming ? 'transition-none pointer-events-auto' : 'transition-[height,box-shadow,border-color] duration-150'
+        isTransforming ? 'transition-none pointer-events-auto' : 'transition-all duration-300 ease-in-out'
       } ${
         isActive
-          ? 'border-[#6ee7b7]/60 shadow-[0_16px_50px_rgba(0,0,0,0.7)] ring-1 ring-[#6ee7b7]/30'
+          ? 'border-[var(--accent)]/60 shadow-[0_20px_60px_rgba(0,0,0,0.8)] ring-1 ring-[var(--accent)]/30'
           : 'border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.4)]'
-      } ${isShaded ? 'rounded-b-xl border-b-cyan-500/30' : ''}`}
+      } ${isShaded ? 'rounded-b-xl border-b-[var(--accent)]/30' : ''}`}
     >
       {/* Title Bar */}
       <div

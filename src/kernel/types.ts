@@ -45,6 +45,8 @@ export type AppId =
   | 'pythonshowcase'
   | 'guistudio'
   | 'rustcpp'
+  | 'hotshot'
+  | 'netmaster'
   | 'asynciomonitor';
 
 declare global {
@@ -62,6 +64,7 @@ export interface AppDefinition {
   width: number;
   height: number;
   pinnedToDock?: boolean;
+  iconBg?: string;
 }
 
 export interface WindowInstance {

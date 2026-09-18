@@ -50,6 +50,7 @@ import {
 import { Kernel } from '../kernel';
 import { Toast } from '../kernel/Toast';
 import { Settings } from '../kernel/Settings';
+import { SoundManager } from '../kernel/SoundManager';
 
 interface ContextMenuProps {
   x: number;
@@ -107,6 +108,35 @@ export const DesktopContextMenu: React.FC<ContextMenuProps> = ({
       onClose();
     };
 
+    const handleRunAsRoot = () => {
+      SoundManager.play('success');
+      Toast.show(`sudo doas ${appId}: executing with root capabilities`, '🛡️');
+      onOpenApp(appId, { runAsRoot: true });
+      onClose();
+    };
+
+    const handleInspectProperties = () => {
+      SoundManager.play('open');
+      const pid = Math.floor(Math.random() * 9000) + 1000;
+      const mem = Math.floor(Math.random() * 50) + 12;
+      alert(`[Helix System Properties: ${appDef.title}]\n` +
+            `• App ID: ${appId}\n` +
+            `• Executable: /usr/bin/${appId}\n` +
+            `• Virtual PID: ${pid}\n` +
+            `• Memory Sandbox: ${mem} MB RSS\n` +
+            `• Runtime JIT: Enabled (v86-pipe)\n` +
+            `• Permissions: cap_net_raw, cap_sys_admin\n` +
+            `• Description: ${appDef.description}`
+      );
+      onClose();
+    };
+
+    const handleForceKill = () => {
+      SoundManager.play('error');
+      Toast.show(`killall -9 ${appId}: terminated process tree`, '💥');
+      onClose();
+    };
+
     return (
       <div
         ref={menuRef}
@@ -140,6 +170,22 @@ export const DesktopContextMenu: React.FC<ContextMenuProps> = ({
           <span>Launch Maximized</span>
         </button>
 
+        <button
+          onClick={handleRunAsRoot}
+          className="w-full px-2.5 py-1.5 rounded-lg hover:bg-amber-500/10 hover:text-amber-300 flex items-center gap-2.5 transition text-left cursor-pointer text-gray-300"
+        >
+          <Shield className="w-4 h-4 text-amber-400" />
+          <span>Run as Administrator (Sudo)</span>
+        </button>
+
+        <button
+          onClick={handleInspectProperties}
+          className="w-full px-2.5 py-1.5 rounded-lg hover:bg-white/10 flex items-center gap-2.5 transition text-left cursor-pointer text-gray-300 hover:text-white"
+        >
+          <Cpu className="w-4 h-4 text-[#6ee7b7]" />
+          <span>Inspect App Properties</span>
+        </button>
+
         <div className="my-1 border-t border-white/10" />
 
         <button
@@ -148,6 +194,14 @@ export const DesktopContextMenu: React.FC<ContextMenuProps> = ({
         >
           <Trash2 className="w-4 h-4 text-red-400" />
           <span>Remove Desktop Shortcut</span>
+        </button>
+
+        <button
+          onClick={handleForceKill}
+          className="w-full px-2.5 py-1.5 rounded-lg hover:bg-red-500/20 text-red-400 hover:text-red-300 flex items-center gap-2.5 transition text-left cursor-pointer"
+        >
+          <Power className="w-4 h-4 text-red-500" />
+          <span>Force Kill Process (kill -9)</span>
         </button>
       </div>
     );
@@ -913,6 +967,33 @@ export const DesktopContextMenu: React.FC<ContextMenuProps> = ({
         <button onClick={() => { Toast.show('Linux dictionary: 24 active terms', '📖'); onClose(); }} className="w-full px-2.5 py-1.5 rounded-lg hover:bg-white/10 flex items-center gap-2.5 transition text-left cursor-pointer text-gray-300 hover:text-white">
           <BookOpen className="w-4 h-4 text-amber-400" />
           <span>Inspect Dictionary Pool</span>
+        </button>
+      </div>
+    );
+  }
+
+  // 33b. HOTSHOT SCREEN SNAPSHOT
+  if (contextType === 'hotshot') {
+    return (
+      <div ref={menuRef} style={{ left: adjustedX, top: adjustedY }} className="fixed z-[9999] w-60 bg-[#12141c]/98 border border-white/15 rounded-xl shadow-2xl p-1.5 text-xs text-[#edf1f7] select-none">
+        <div className="px-2 py-1 font-mono text-[10px] text-[#6ee7b7] font-bold uppercase tracking-wider border-b border-white/10 mb-1 flex items-center justify-between">
+          <span>Hotshot Core Controller</span>
+          <Camera className="w-3 h-3 text-[#6ee7b7]" />
+        </div>
+        <button onClick={() => { onOpenApp('hotshot'); Toast.show('Opened Screen Snapshot Utility', '📸'); onClose(); }} className="w-full px-2.5 py-1.5 rounded-lg hover:bg-white/10 flex items-center gap-2.5 transition text-left cursor-pointer text-gray-300 hover:text-white">
+          <Camera className="w-4 h-4 text-[#6ee7b7]" />
+          <span>Launch Hotshot UI</span>
+        </button>
+        <button onClick={() => { 
+          if (typeof (window as any).__triggerHotshotCapture === 'function') {
+            (window as any).__triggerHotshotCapture();
+          } else {
+            Toast.show('Hotshot capture trigger active', '📸');
+          }
+          onClose(); 
+        }} className="w-full px-2.5 py-1.5 rounded-lg hover:bg-white/10 flex items-center gap-2.5 transition text-left cursor-pointer text-gray-300 hover:text-white">
+          <Sparkles className="w-4 h-4 text-amber-400" />
+          <span>Trigger Snapshot (Alt+S)</span>
         </button>
       </div>
     );

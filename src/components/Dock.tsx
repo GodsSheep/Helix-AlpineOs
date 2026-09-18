@@ -381,14 +381,14 @@ export const Dock: React.FC<DockProps> = ({
                   onLaunchApp(app.id);
                 }}
                 onContextMenu={(e) => handleAppContextMenu(e, app.id)}
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs transition cursor-pointer ${
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs transition cursor-pointer overflow-hidden border ${
                   activeAppId === app.id
-                    ? 'bg-white/20 ring-1 ring-[#6ee7b7]'
-                    : 'bg-white/5 hover:bg-white/10'
-                }`}
+                    ? 'ring-1 ring-[#6ee7b7]'
+                    : ''
+                } ${app.iconBg || 'bg-white/5 border-transparent'}`}
                 title={`${app.title} (Right-click for options)`}
               >
-                <span>{app.icon}</span>
+                <span className="scale-90 select-none">{app.icon}</span>
               </button>
             ))}
           </div>
@@ -453,16 +453,16 @@ export const Dock: React.FC<DockProps> = ({
                 onPointerUp={cancelHoldTimer}
                 onPointerLeave={cancelHoldTimer}
                 onPointerCancel={cancelHoldTimer}
-                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex flex-col items-center justify-center text-lg sm:text-xl transition-all cursor-pointer relative group shrink-0 active:scale-95 ${
+                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex flex-col items-center justify-center text-lg sm:text-xl transition-all cursor-pointer relative group shrink-0 active:scale-95 border ${
                   isActive
-                    ? 'bg-white/15 border border-[#6ee7b7]/50 shadow-[0_0_12px_rgba(110,231,183,0.15)] -translate-y-0.5 sm:-translate-y-1'
+                    ? 'shadow-[0_0_14px_rgba(110,231,183,0.3)] -translate-y-0.5 sm:-translate-y-1'
                     : isBackground
-                    ? 'bg-white/5 border border-cyan-400/30'
-                    : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:-translate-y-0.5 sm:hover:-translate-y-1'
-                }`}
+                    ? 'border-cyan-400/40'
+                    : 'hover:-translate-y-0.5 sm:hover:-translate-y-1'
+                } ${app.iconBg || 'bg-white/5 border-white/10 hover:bg-white/10'}`}
                 title={`${app.title} • Press-hold or right-click for menu`}
               >
-                <span className="text-lg sm:text-xl leading-none">{app.icon}</span>
+                <span className="text-lg sm:text-xl leading-none select-none filter drop-shadow-md">{app.icon}</span>
 
                 {/* Indicator Dot/Bar */}
                 {isOpen && (

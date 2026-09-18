@@ -381,10 +381,15 @@ export class SettingsService {
 
   public setTheme(themeId: string): void {
     const isLight = themeId === 'alpine-daylight';
+    const all = [...THEME_PRESETS, ...this.settings.customThemes, ...FREE_THEME_STORE];
+    const theme = all.find((t) => t.id === themeId) || THEME_PRESETS[0];
+
     this.update({
       themeId,
       darkMode: !isLight,
       previousDarkThemeId: !isLight ? themeId : this.settings.previousDarkThemeId,
+      customWallpaperUrl: undefined,
+      wallpaperPreset: theme.wallpaper,
     });
   }
 

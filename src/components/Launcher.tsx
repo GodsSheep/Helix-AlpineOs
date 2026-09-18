@@ -265,8 +265,8 @@ export const Launcher: React.FC<LauncherProps> = ({ isOpen, onClose, onLaunchApp
                 className="w-full p-2.5 rounded-xl hover:bg-[#6ee7b7]/10 border border-transparent hover:border-[#6ee7b7]/20 flex items-center justify-between transition group cursor-pointer"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xl group-hover:scale-105 transition shrink-0">
-                    {app.icon}
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl group-hover:scale-105 transition shrink-0 border ${app.iconBg || 'bg-white/5 border-white/10'}`}>
+                    <span className="select-none filter drop-shadow-md">{app.icon}</span>
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">

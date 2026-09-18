@@ -57,6 +57,28 @@ export interface HotspotConfig {
   connectedClients: number;
 }
 
+export interface HotspotClient {
+  id: string;
+  deviceName: string;
+  ipAddress: string;
+  macAddress: string;
+  connectedTime: string;
+  bandwidthUsage: string;
+  signalStrength: number;
+}
+
+export interface ProxyConfig {
+  enabled: boolean;
+  type: 'http' | 'socks5';
+  host: string;
+  port: number;
+  bypassList: string;
+  authentication: boolean;
+  username?: string;
+  password?: string;
+  routingMode: 'global' | 'bypass_lan' | 'rules';
+}
+
 export interface WireguardVpnConfig {
   enabled: boolean;
   connected?: boolean;
@@ -305,6 +327,21 @@ class NetworkServiceImpl {
     bytesTransferred: '0 B received, 0 B sent',
   };
 
+  private proxy: ProxyConfig = {
+    enabled: false,
+    type: 'socks5',
+    host: '127.0.0.1',
+    port: 1080,
+    bypassList: 'localhost, 127.0.0.1, *.local, 192.168.*',
+    authentication: false,
+    routingMode: 'bypass_lan',
+  };
+
+  private hotspotClients: HotspotClient[] = [
+    { id: '1', deviceName: 'MacBookPro-Local', ipAddress: '192.168.42.10', macAddress: '04:D4:C4:F4:A4:B4', connectedTime: '12m ago', bandwidthUsage: '2.5 MB', signalStrength: 95 },
+    { id: '2', deviceName: 'iPhone-Testbed', ipAddress: '192.168.42.11', macAddress: 'BC:60:A7:28:90:CD', connectedTime: '5m ago', bandwidthUsage: '840 KB', signalStrength: 82 }
+  ];
+
   constructor() {
     this.loadPersistedState();
   }
@@ -320,6 +357,8 @@ class NetworkServiceImpl {
           if (parsed.interfaces) this.interfaces = { ...this.interfaces, ...parsed.interfaces };
           if (parsed.hotspot) this.hotspot = { ...this.hotspot, ...parsed.hotspot };
           if (parsed.wireguard) this.wireguard = { ...this.wireguard, ...parsed.wireguard };
+          if (parsed.proxy) this.proxy = { ...this.proxy, ...parsed.proxy };
+          if (parsed.hotspotClients) this.hotspotClients = parsed.hotspotClients;
           if (parsed.savedNetworks && Array.isArray(parsed.savedNetworks)) {
             // merge saved passwords / autoConnect flags
             for (const sNet of parsed.savedNetworks) {
@@ -354,6 +393,8 @@ class NetworkServiceImpl {
           interfaces: this.interfaces,
           hotspot: this.hotspot,
           wireguard: this.wireguard,
+          proxy: this.proxy,
+          hotspotClients: this.hotspotClients,
           savedNetworks: this.networks.filter(n => n.saved).map(n => ({
             ssid: n.ssid,
             bssid: n.bssid,
@@ -425,6 +466,19 @@ class NetworkServiceImpl {
       ...this.hotspot, 
       passphrase: this.hotspot.password || this.hotspot.passphrase || 'alpinepassword123' 
     };
+  }
+
+  public getProxyConfig(): ProxyConfig {
+    return { ...this.proxy };
+  }
+
+  public getHotspotClients(): HotspotClient[] {
+    return [...this.hotspotClients];
+  }
+
+  public toggleProxy(enabled?: boolean): void {
+    const nextState = enabled !== undefined ? enabled : !this.proxy.enabled;
+    this.setProxyConfig({ enabled: nextState });
   }
 
   public getWireguardConfig(): WireguardVpnConfig {
@@ -604,6 +658,19 @@ class NetworkServiceImpl {
       this.wireguard.handshakeStatus = 'disconnected';
       this.interfaces.wg0.enabled = false;
     }
+    this.notify();
+  }
+
+  public setProxyConfig(updates: Partial<ProxyConfig>): void {
+    this.proxy = {
+      ...this.proxy,
+      ...updates,
+    };
+    this.notify();
+  }
+
+  public setHotspotClients(clients: HotspotClient[]): void {
+    this.hotspotClients = clients;
     this.notify();
   }
 
