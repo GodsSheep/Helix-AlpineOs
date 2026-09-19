@@ -532,23 +532,29 @@ export const UniversalGuiStudioApp: React.FC = () => {
                 <span>GUI Framework Presets</span>
               </h2>
 
-              <div className="space-y-1.5 flex-1">
+              <div className="space-y-2 h-0 flex-1 overflow-y-auto pr-1">
                 {TEMPLATES.map((tpl) => (
                   <button
                     key={tpl.id}
                     onClick={() => handleSelectTemplate(tpl)}
-                    className={`w-full p-2.5 rounded-xl border text-left transition cursor-pointer flex items-center gap-2.5 ${
+                    className={`w-full p-3 rounded-xl border text-left transition-all duration-200 group flex items-start gap-3 ${
                       selectedTemplate.id === tpl.id
-                        ? 'bg-cyan-500/20 border-cyan-400 text-white shadow-lg'
-                        : 'bg-black/30 border-white/5 text-gray-300 hover:bg-white/5 hover:border-white/10'
+                        ? 'bg-[var(--accent)]/15 border-[var(--accent)]/40 shadow-[0_4px_16px_rgba(0,0,0,0.3)] ring-1 ring-[var(--accent)]/20'
+                        : 'bg-white/5 border-white/5 text-gray-300 hover:bg-white/10 hover:border-white/10'
                     }`}
                   >
-                    <span className="text-xl shrink-0">{tpl.icon}</span>
+                    <div className={`p-2 rounded-lg text-lg ${
+                      selectedTemplate.id === tpl.id ? 'bg-[var(--accent)]/20' : 'bg-black/20 group-hover:bg-black/30'
+                    }`}>
+                      {tpl.icon}
+                    </div>
                     <div className="min-w-0 flex-1">
-                      <div className="font-bold text-xs truncate flex items-center justify-between">
-                        <span>{tpl.name}</span>
+                      <div className={`font-semibold text-xs truncate ${
+                        selectedTemplate.id === tpl.id ? 'text-white' : 'text-gray-100'
+                      }`}>
+                        {tpl.name}
                       </div>
-                      <p className="text-[10px] text-gray-400 truncate">{tpl.description}</p>
+                      <p className="text-[10px] text-gray-500 truncate mt-0.5 group-hover:text-gray-400">{tpl.framework}</p>
                     </div>
                   </button>
                 ))}

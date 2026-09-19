@@ -69,6 +69,17 @@ export class AppRegistry {
       iconBg: 'bg-gradient-to-tr from-sky-600/35 to-cyan-500/20 border-sky-500/30 text-sky-300'
     },
     {
+      id: 'rustcpp',
+      title: 'Rust & C++ Studio',
+      icon: '🦀',
+      category: 'Development',
+      description: 'Ultra-fast native JIT compiler studio for Rust 2021 & C++23 with memory diagnostics.',
+      width: 680,
+      height: 520,
+      pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-amber-700/40 to-orange-500/20 border-orange-500/30 text-orange-300'
+    },
+    {
       id: 'settings',
       title: 'Settings',
       icon: '⚙️',
@@ -232,39 +243,6 @@ export class AppRegistry {
       height: 460,
       pinnedToDock: false,
       iconBg: 'bg-gradient-to-tr from-amber-600/35 to-rose-500/25 border-amber-500/30 text-amber-300'
-    },
-    {
-      id: 'rustcpp',
-      title: 'Rust & C++ Native Studio',
-      icon: '🦀',
-      category: 'Development',
-      description: 'Zero-latency local Rust 1.76 & C++23 WASM compiler, hardware profiler & vector execution engine.',
-      width: 780,
-      height: 560,
-      pinnedToDock: true,
-      iconBg: 'bg-gradient-to-tr from-orange-600/40 to-sky-500/30 border-orange-500/40 text-orange-300'
-    },
-    {
-      id: 'guistudio',
-      title: 'Universal GUI Studio & X11 Engine',
-      icon: '✨',
-      category: 'Development',
-      description: 'Unified Python 3 GUI Studio, Virtual X11 Display Server (:0.0), and Universal Screen Converter.',
-      width: 780,
-      height: 560,
-      pinnedToDock: true,
-      iconBg: 'bg-gradient-to-tr from-fuchsia-600/40 to-violet-500/30 border-fuchsia-500/40 text-fuchsia-300'
-    },
-    {
-      id: 'pythonshowcase',
-      title: 'Python 3 Studio & Showcase',
-      icon: '📜',
-      category: 'Development',
-      description: 'Unified Python 3.12 execution engine, standard library REPL, multi-framework GUI gallery & screen converter.',
-      width: 780,
-      height: 560,
-      pinnedToDock: true,
-      iconBg: 'bg-gradient-to-tr from-blue-600/40 to-yellow-500/30 border-blue-500/40 text-yellow-300'
     },
     {
       id: 'asynciomonitor',
@@ -529,6 +507,127 @@ export class AppRegistry {
       height: 520,
       pinnedToDock: true,
       iconBg: 'bg-gradient-to-tr from-cyan-600/35 to-blue-500/25 border-cyan-500/30 text-cyan-300'
+    },
+    {
+      id: 'unifiedstudio',
+      title: 'Helix Unified Studio',
+      icon: '✨',
+      category: 'Development',
+      description: 'Integrated development suite for Python GUIs, code showcases, and native systems programming.',
+      width: 900,
+      height: 600,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-purple-600/35 to-fuchsia-500/25 border-purple-500/30 text-purple-300'
+    },
+    {
+      id: 'osselector',
+      title: 'Multi-OS Boot Hub',
+      icon: '🚀',
+      category: 'System',
+      description: 'Switch and boot alternative Linux distributions (Kali, Debian, Ubuntu, Void, Tiny Core) instantly inside Helix OS.',
+      width: 820,
+      height: 560,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-cyan-600/35 to-emerald-500/25 border-cyan-500/30 text-cyan-300'
+    },
+    {
+      id: 'backpack',
+      title: 'Helix Backpack',
+      icon: '🎒',
+      category: 'Utilities',
+      description: 'System-wide item storage for files, snippets, and remote URLs. Carry your workflow across sessions.',
+      width: 420,
+      height: 520,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-orange-600/35 to-amber-500/25 border-orange-500/30 text-orange-200'
+    },
+    {
+      id: 'sysscan',
+      title: 'System Intelligence Scanner',
+      icon: '🔍',
+      category: 'System',
+      description: 'Deep system scan for endpoints, missing configurations, and hardware nodes. Automated backpack harvesting.',
+      width: 680,
+      height: 480,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-indigo-700/40 to-blue-600/30 border-indigo-500/40 text-blue-100'
+    },
+    {
+      id: 'bootassist',
+      title: 'Multi-Boot Assistant',
+      icon: '💡',
+      category: 'System',
+      description: 'Intelligent hardware tuner, BIOS compatibility matrix, and live diagnostics assistant for Multi-OS booting.',
+      width: 760,
+      height: 520,
+      pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-cyan-600/35 to-blue-500/25 border-cyan-500/30 text-cyan-200'
+    },
+    {
+      id: 'healthcheck',
+      title: 'System Health Diagnostics',
+      icon: '🩺',
+      category: 'System',
+      description: 'Periodic background diagnostics on kernel uptime, VFS integrity, memory pressure, and auto-heal.',
+      width: 780,
+      height: 540,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-emerald-600/40 to-teal-500/30 border-emerald-500/40 text-emerald-200'
+    },
+    {
+      id: 'betterbrowser',
+      title: 'Helix Better Browser',
+      icon: '🌐',
+      category: 'Utilities',
+      description: 'Advanced tabbed web browser sandbox with DevTools, security inspector, bookmarks, and user-agent spoofer.',
+      width: 820,
+      height: 580,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-cyan-600/40 to-blue-500/30 border-cyan-500/40 text-cyan-200'
+    },
+    {
+      id: 'crossplatform',
+      title: 'Cross-Platform Developer Tools',
+      icon: '🛠️',
+      category: 'Development',
+      description: 'Linux & Windows compatibility suite with Wine Win32 runner, PowerShell-to-Bash translator, and PE/ELF binary inspector.',
+      width: 800,
+      height: 560,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-indigo-600/40 to-purple-500/30 border-indigo-500/40 text-indigo-200'
+    },
+    {
+      id: 'pythonengine',
+      title: 'Python Standard Runtime',
+      icon: '🐍',
+      category: 'Development',
+      description: 'Helix standard Python language engine with REPL studio, pip package installer, and script runner.',
+      width: 820,
+      height: 580,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-yellow-600/40 to-amber-500/30 border-yellow-500/40 text-yellow-200'
+    },
+    {
+      id: 'pythonarcade',
+      title: 'Python Retro Arcade',
+      icon: '🕹️',
+      category: 'Games',
+      description: 'Canvas arcade game suite driven by embedded Python execution loops (Cyber Serpent, Synth Racer, Space Defense).',
+      width: 600,
+      height: 520,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-emerald-600/40 to-lime-500/30 border-emerald-500/40 text-lime-200'
+    },
+    {
+      id: 'trash',
+      title: 'Trash & Recycle Bin',
+      icon: '🗑️',
+      category: 'System',
+      description: 'System trash manager for restoring deleted files, recovering uninstalled applications, and managing purge quotas.',
+      width: 720,
+      height: 520,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-rose-600/40 to-pink-500/30 border-rose-500/40 text-rose-200'
     },
   ];
 

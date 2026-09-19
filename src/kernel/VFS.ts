@@ -118,15 +118,8 @@ export class VirtualFileSystem {
       this.journal.record('modify', normPath);
     }
 
-    // Sync to Alpine emulator filesystem if running
-    if (typeof window !== 'undefined' && (window as any).emulator?.create_file) {
-      try {
-        const cleanPath = normPath.replace(/^\//, '');
-        (window as any).emulator.create_file(cleanPath, new TextEncoder().encode(content));
-      } catch (err) {
-        console.warn('V86 sync skipped:', err);
-      }
-    }
+    // Sync to Alpine emulator filesystem if running (safe, non-blocking)
+    this.syncToEmulator(normPath, content).catch(() => {});
 
     // Notify listeners so UI updates instantly
     this.notifyPathListeners(normPath, content);
@@ -134,6 +127,42 @@ export class VirtualFileSystem {
 
     // Schedule debounced atomic flush to disk
     this.scheduleDebouncedFlush();
+  }
+
+  private async syncToEmulator(normPath: string, content: string): Promise<void> {
+    if (typeof window === 'undefined') return;
+    const emu = (window as any).emulator;
+    if (!emu) return;
+
+    try {
+      const cleanPath = normPath.replace(/^\/+/, '');
+      if (!cleanPath) return;
+
+      // Ensure intermediate directories exist in 9p filesystem if fs9p is present
+      if (emu.fs9p && typeof emu.fs9p.Search === 'function' && typeof emu.fs9p.CreateDirectory === 'function') {
+        const segments = cleanPath.split('/').filter(Boolean);
+        segments.pop(); // remove filename
+        let currentParentId = 0; // root inode
+        for (const dir of segments) {
+          let nextId = emu.fs9p.Search(currentParentId, dir);
+          if (nextId === -1) {
+            try {
+              nextId = emu.fs9p.CreateDirectory(dir, currentParentId);
+            } catch {
+              break;
+            }
+          }
+          currentParentId = nextId;
+        }
+      }
+
+      if (typeof emu.create_file === 'function') {
+        const bytes = new TextEncoder().encode(content);
+        await Promise.resolve(emu.create_file(cleanPath, bytes)).catch(() => {});
+      }
+    } catch {
+      // Best-effort synchronization to emulator: safely ignore if emulator filesystem is not ready
+    }
   }
 
   async read(path: string): Promise<string | null> {

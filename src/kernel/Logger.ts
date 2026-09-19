@@ -1,5 +1,5 @@
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'critical';
-export type Subsystem = 'KERNEL' | 'VFS' | 'VM' | 'LINUX' | 'RPC' | 'PTY' | 'APP' | 'NETWORK' | 'SYNC' | 'UPDATE' | 'SECURITY' | 'PWA';
+export type Subsystem = 'KERNEL' | 'VFS' | 'VM' | 'LINUX' | 'RPC' | 'PTY' | 'APP' | 'NETWORK' | 'SYNC' | 'UPDATE' | 'SECURITY' | 'PWA' | 'REINFORCEMENT';
 
 export interface LogEntry {
   id: string;

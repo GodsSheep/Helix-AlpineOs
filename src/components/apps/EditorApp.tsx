@@ -23,7 +23,8 @@ import {
   Trash2,
   CheckCircle2,
   Clock,
-  Monitor
+  Monitor,
+  Briefcase
 } from 'lucide-react';
 
 export const EditorApp: React.FC<{ initialFile?: string }> = ({ initialFile }) => {
@@ -316,6 +317,18 @@ export const EditorApp: React.FC<{ initialFile?: string }> = ({ initialFile }) =
           >
             {isSaved ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5" />}
             <span>{isSaved ? 'Saved' : 'Save *'}</span>
+          </button>
+
+          <button
+            onClick={() => {
+              Kernel.backpack.addItem('snippet', activeFile.split('/').pop() || 'Snippet', content);
+              Toast.show('Saved to Backpack', '🎒');
+            }}
+            className="px-3 py-1.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 font-semibold flex items-center gap-1.5 transition cursor-pointer border border-orange-500/40"
+            title="Save snippet to System Backpack"
+          >
+            <Briefcase className="w-3.5 h-3.5" />
+            <span>Backpack</span>
           </button>
 
           <div className="w-[1px] h-4 bg-white/10 mx-1" />

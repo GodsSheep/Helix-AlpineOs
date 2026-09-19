@@ -28,7 +28,8 @@ import {
   ChevronRight,
   Info,
   PanelLeftClose,
-  PanelLeft
+  PanelLeft,
+  Briefcase
 } from 'lucide-react';
 
 interface FilesAppProps {
@@ -215,10 +216,9 @@ export const FilesApp: React.FC<FilesAppProps> = ({ onOpenFileInEditor }) => {
         notify(`Renamed to ${newName}`);
       }
     } else if (modalType === 'delete' && modalTarget) {
-      await Kernel.vfs.delete(modalTarget.path);
+      await Kernel.trash.trash(modalTarget.path);
       if (selectedFile?.path === modalTarget.path) setSelectedFile(null);
-      SoundManager.play('close');
-      notify(`Deleted ${modalTarget.path}`);
+      notify(`Moved ${modalTarget.path} to Trash`);
     }
 
     setModalType(null);
@@ -657,7 +657,20 @@ export const FilesApp: React.FC<FilesAppProps> = ({ onOpenFileInEditor }) => {
                 <span>Run in Terminal</span>
               </button>
 
-              <div className="grid grid-cols-2 gap-1.5">
+              <button
+        onClick={() => {
+          if (selectedFile) {
+            Kernel.backpack.addItem('file', selectedFile.path.split('/').pop() || 'File', selectedFile.content);
+            notify('Added to Backpack 🎒');
+          }
+        }}
+        className="w-full py-1.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-300 border border-orange-500/30 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
+      >
+        <Briefcase className="w-3.5 h-3.5" />
+        <span>Add to Backpack</span>
+      </button>
+
+      <div className="grid grid-cols-2 gap-1.5">
                 <button
                   onClick={() => openRenameModal(selectedFile)}
                   className="py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded-lg transition cursor-pointer text-center"

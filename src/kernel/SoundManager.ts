@@ -17,6 +17,7 @@ export type SoundEffectType =
   | 'boot'
   | 'key'
   | 'dock'
+  | 'trash'
   | 'bell';
 
 export type SoundEffect = SoundEffectType;
@@ -335,6 +336,21 @@ class SoundEngine {
           osc.connect(gainNode);
           osc.start(now);
           osc.stop(now + 0.26);
+          break;
+        }
+
+        case 'trash': {
+          const osc = ctx.createOscillator();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(140, now + 0.12);
+
+          gainNode.gain.setValueAtTime(masterVol * 0.4, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
+
+          osc.connect(gainNode);
+          osc.start(now);
+          osc.stop(now + 0.16);
           break;
         }
       }

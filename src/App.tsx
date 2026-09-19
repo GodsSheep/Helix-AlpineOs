@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { WindowInstance } from './kernel';
 import { Kernel } from './kernel';
 import { BootScreen } from './components/BootScreen';
@@ -51,15 +51,28 @@ import { NeofetchApp } from './components/apps/NeofetchApp';
 import { TaskSchedulerApp } from './components/apps/TaskSchedulerApp';
 import { HexEditorApp } from './components/apps/HexEditorApp';
 import { BenchmarkApp } from './components/apps/BenchmarkApp';
+import { UniversalGuiStudioApp } from './components/apps/UniversalGuiStudioApp';
 import { PythonShowcaseApp } from './components/apps/PythonShowcaseApp';
+import { RustCppStudioApp } from './components/apps/RustCppStudioApp';
 import { AsyncIOManagerApp } from './components/apps/AsyncIOManagerApp';
 import { GuiRunnerApp } from './components/apps/GuiRunnerApp';
-import { UniversalGuiStudioApp } from './components/apps/UniversalGuiStudioApp';
-import { RustCppStudioApp } from './components/apps/RustCppStudioApp';
+import { HelixUnifiedStudio } from './components/apps/HelixUnifiedStudio';
+import { OsSelectorApp } from './components/apps/OsSelectorApp';
+import { MultiBootAssistantApp } from './components/apps/MultiBootAssistantApp';
 import { DynamicGuiWindow } from './components/apps/DynamicGuiWindow';
 import { NetworkMasterApp } from './components/apps/NetworkMasterApp';
+import { BackpackApp } from './components/apps/BackpackApp';
+import { SysScanApp } from './components/apps/SysScanApp';
+import { HealthCheckApp } from './components/apps/HealthCheckApp';
+import { BetterBrowserApp } from './components/apps/BetterBrowserApp';
+import { CrossPlatformToolsApp } from './components/apps/CrossPlatformToolsApp';
+import { PythonEngineApp } from './components/apps/PythonEngineApp';
+import { PythonRetroGameSuiteApp } from './components/apps/PythonRetroGameSuiteApp';
+import { TrashApp } from './components/apps/TrashApp';
 import { DesktopContextMenu } from './components/DesktopContextMenu';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { Settings, HelixSettings } from './kernel/Settings';
+import { ThemeEngine } from './kernel/ThemeEngine';
 import { Power, RefreshCw } from 'lucide-react';
 
 export default function App() {
@@ -79,8 +92,34 @@ export default function App() {
   const desktopHoldStart = useRef<{ x: number; y: number } | null>(null);
   const touchStartEdge = useRef<{ x: number; y: number; edge: 'top' | 'bottom' | 'none' } | null>(null);
   const lastShortcutClick = useRef<{ id: string; time: number }>({ id: '', time: 0 });
+  const lastNotificationToggleTime = useRef<number>(0);
+  const openNotifTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const resizeDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleToggleNotificationCenter = () => {
+    const now = Date.now();
+    if (now - lastNotificationToggleTime.current < 250) return;
+    lastNotificationToggleTime.current = now;
+
+    if (isNotificationCenterOpen) {
+      if (openNotifTimeout.current) {
+        clearTimeout(openNotifTimeout.current);
+        openNotifTimeout.current = null;
+      }
+      setIsNotificationCenterOpen(false);
+    } else {
+      setIsQuickSettingsOpen(false);
+      setIsLauncherOpen(false);
+      setContextMenuPos(null);
+
+      if (openNotifTimeout.current) clearTimeout(openNotifTimeout.current);
+      openNotifTimeout.current = setTimeout(() => {
+        setIsNotificationCenterOpen(true);
+        openNotifTimeout.current = null;
+      }, 50);
+    }
+  };
 
   useEffect(() => {
     if (!mainContainerRef.current) return;
@@ -106,16 +145,19 @@ export default function App() {
   };
 
   useEffect(() => {
-    Kernel.init().catch((err) => console.warn('Kernel init failed:', err));
+    ThemeEngine.init();
+    Kernel.init().then(() => {
+      console.log('[Kernel] VFS Persistent Storage & Kernel Engine Ready');
+    }).catch((err) => console.warn('Kernel init failed:', err));
     Kernel.apps.loadCustomApps();
 
     const unsubSettings = Settings.subscribe((s) => {
       setSettings(s);
     });
 
-    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-      navigator.serviceWorker.register('/sw.js').catch((e) => {
-        console.warn('SW registration:', e);
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((e) => {
+        console.warn('SW registration info:', e);
       });
     }
 
@@ -131,14 +173,62 @@ export default function App() {
     });
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      const isSuper = e.metaKey;
+      const isAlt = e.altKey;
+      const isCtrl = e.ctrlKey;
+      const key = e.key.toLowerCase();
+
+      // Super+T or Alt+T or Ctrl+Alt+T -> Launch Terminal
+      if ((isSuper && key === 't') || (isAlt && key === 't') || (isCtrl && isAlt && key === 't')) {
+        e.preventDefault();
+        Kernel.wm.launch('term');
+        return;
+      }
+
+      // Super+E or Alt+E -> Launch File Manager
+      if ((isSuper && key === 'e') || (isAlt && key === 'e')) {
+        e.preventDefault();
+        Kernel.wm.launch('files');
+        return;
+      }
+
+      // Super+B or Alt+B -> Launch Multi-OS Boot Hub
+      if ((isSuper && key === 'b') || (isAlt && key === 'b')) {
+        e.preventDefault();
+        Kernel.wm.launch('osselector');
+        return;
+      }
+
+      // Super+H or Alt+H -> Launch Multi-Boot Assistant & Diagnostics
+      if ((isSuper && key === 'h') || (isAlt && key === 'h')) {
+        e.preventDefault();
+        Kernel.wm.launch('bootassist');
+        return;
+      }
+
+      // Super+M or Alt+M -> Launch System Monitor
+      if ((isSuper && key === 'm') || (isAlt && key === 'm')) {
+        e.preventDefault();
+        Kernel.wm.launch('mon');
+        return;
+      }
+
+      // Super+K or Ctrl+K -> Toggle Launcher / App Finder
+      if ((isSuper && key === 'k') || (isCtrl && key === 'k')) {
+        e.preventDefault();
+        setIsLauncherOpen((prev) => !prev);
+        return;
+      }
+
       // Alt+Z or F11 toggles Zen / Screen space mode
-      if ((e.altKey && e.key.toLowerCase() === 'z') || e.key === 'F11') {
+      if ((isAlt && key === 'z') || e.key === 'F11') {
         e.preventDefault();
         setIsZenMode((prev) => !prev);
+        return;
       }
 
       // Alt+S or PrintScreen key triggers Hotshot screenshot capture
-      if ((e.altKey && e.key.toLowerCase() === 's') || e.key === 'PrintScreen') {
+      if ((isAlt && key === 's') || e.key === 'PrintScreen') {
         e.preventDefault();
         Kernel.wm.launch('hotshot');
         setTimeout(() => {
@@ -146,6 +236,7 @@ export default function App() {
             (window as any).__triggerHotshotCapture();
           }
         }, 400);
+        return;
       }
     };
 
@@ -172,7 +263,7 @@ export default function App() {
 
         if (start.edge === 'top' && dy > 50) {
           if ('vibrate' in navigator) navigator.vibrate?.(30);
-          setIsNotificationCenterOpen(true);
+          handleToggleNotificationCenter();
         } else if (start.edge === 'bottom' && dy < -50) {
           if ('vibrate' in navigator) navigator.vibrate?.(30);
           setIsLauncherOpen(true);
@@ -196,12 +287,12 @@ export default function App() {
     };
   }, []);
 
-  const handleBootComplete = () => {
+  const handleBootComplete = useCallback(() => {
     setIsBooted(true);
     setTimeout(() => {
       Kernel.wm.launch('term');
     }, 200);
-  };
+  }, []);
 
   const openAppIds = new Set(windows.map((w) => w.appId));
   const backgroundAppIds = new Set(windows.filter((w) => w.isMinimized).map((w) => w.appId));
@@ -247,6 +338,12 @@ export default function App() {
       case 'hotshot': return <HotshotApp />;
       case 'ssh': return <SshClientApp />;
       case 'archive': return <ArchiveApp />;
+      case 'rustcpp': return <RustCppStudioApp />;
+      case 'guistudio': return <UniversalGuiStudioApp />;
+      case 'pythonshowcase': return <PythonShowcaseApp />;
+      case 'unifiedstudio': return <HelixUnifiedStudio />;
+      case 'osselector': return <OsSelectorApp />;
+      case 'bootassist': return <MultiBootAssistantApp />;
       case 'hardware': return <HardwareInfoApp />;
       case 'diff': return <DiffViewerApp />;
       case 'clipboard': return <ClipboardManagerApp />;
@@ -259,12 +356,17 @@ export default function App() {
       case 'taskscheduler': return <TaskSchedulerApp />;
       case 'hexedit': return <HexEditorApp />;
       case 'benchmark': return <BenchmarkApp />;
-      case 'rustcpp': return <RustCppStudioApp />;
-      case 'guistudio':
       case 'guirunner': return <UniversalGuiStudioApp />;
-      case 'pythonshowcase': return <PythonShowcaseApp />;
       case 'asynciomonitor': return <AsyncIOManagerApp />;
       case 'netmaster': return <NetworkMasterApp />;
+      case 'backpack': return <BackpackApp />;
+      case 'sysscan': return <SysScanApp />;
+      case 'healthcheck': return <HealthCheckApp />;
+      case 'betterbrowser': return <BetterBrowserApp />;
+      case 'crossplatform': return <CrossPlatformToolsApp />;
+      case 'pythonengine': return <PythonEngineApp />;
+      case 'pythonarcade': return <PythonRetroGameSuiteApp />;
+      case 'trash': return <TrashApp />;
       case 'gui-window': return <DynamicGuiWindow guiId={win.args?.guiId as string} args={win.args} />;
       default: return <TerminalApp />;
     }
@@ -363,7 +465,7 @@ export default function App() {
         isQuickSettingsOpen={isQuickSettingsOpen}
         isZenMode={isZenMode}
         onToggleZenMode={() => setIsZenMode((prev) => !prev)}
-        onToggleNotificationCenter={() => setIsNotificationCenterOpen((prev) => !prev)}
+        onToggleNotificationCenter={handleToggleNotificationCenter}
         isNotificationCenterOpen={isNotificationCenterOpen}
       />
 
@@ -496,12 +598,6 @@ export default function App() {
 
       <NotificationToast />
 
-      <NotificationCenter
-        isOpen={isNotificationCenterOpen}
-        onClose={() => setIsNotificationCenterOpen(false)}
-        onOpenApp={(appId, args) => Kernel.wm.launch(appId as any, args)}
-      />
-
       <QuickSettingsDrawer
         isOpen={isQuickSettingsOpen}
         onClose={() => setIsQuickSettingsOpen(false)}
@@ -523,6 +619,14 @@ export default function App() {
         isLauncherOpen={isLauncherOpen}
         isZenMode={isZenMode}
       />
+
+      <NotificationCenter
+        isOpen={isNotificationCenterOpen}
+        onClose={() => setIsNotificationCenterOpen(false)}
+        onOpenApp={(appId, args) => Kernel.wm.launch(appId as any, args)}
+      />
+
+      <OfflineIndicator />
 
       {isSystemHalted && (
         <div className="fixed inset-0 bg-[#07080c] flex flex-col items-center justify-center z-[9999] transition-all duration-700 animate-fade-in text-gray-200">

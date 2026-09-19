@@ -47,7 +47,18 @@ export type AppId =
   | 'rustcpp'
   | 'hotshot'
   | 'netmaster'
-  | 'asynciomonitor';
+  | 'asynciomonitor'
+  | 'unifiedstudio'
+  | 'osselector'
+  | 'backpack'
+  | 'sysscan'
+  | 'bootassist'
+  | 'healthcheck'
+  | 'betterbrowser'
+  | 'crossplatform'
+  | 'pythonengine'
+  | 'pythonarcade'
+  | 'trash';
 
 declare global {
   interface Window {

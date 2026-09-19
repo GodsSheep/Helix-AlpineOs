@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SoundManager } from '../kernel/SoundManager';
 
 interface BootScreenProps {
@@ -11,6 +11,11 @@ export const BootScreen: React.FC<BootScreenProps> = ({ onBootComplete }) => {
   const [isDone, setIsDone] = useState(false);
 
   useEffect(() => {
+    // Reset state on effect start to ensure fresh boot sequence
+    setLogs([]);
+    setProgress(10);
+    setIsDone(false);
+
     const steps = [
       { text: 'Mounting Virtual Filesystem (IndexedDB)', progress: 35, delay: 200 },
       { text: 'Registering Service Worker (Offline PWA Ready)', progress: 60, delay: 450 },
@@ -19,27 +24,39 @@ export const BootScreen: React.FC<BootScreenProps> = ({ onBootComplete }) => {
       { text: 'Desktop Environment Active', progress: 100, delay: 1200 },
     ];
 
+    const timers: (NodeJS.Timeout | number)[] = [];
+
     steps.forEach(({ text, progress: prog, delay }) => {
-      setTimeout(() => {
-        setLogs((prev) => [...prev, { text, ok: true }]);
+      const t = setTimeout(() => {
+        setLogs((prev) => {
+          if (prev.some(p => p.text === text)) return prev;
+          return [...prev, { text, ok: true }];
+        });
         setProgress(prog);
         if (prog === 100) {
           SoundManager.play('boot');
         }
       }, delay);
+      timers.push(t);
     });
 
     const completionTimer = setTimeout(() => {
       setIsDone(true);
-      setTimeout(onBootComplete, 500);
+      const doneT = setTimeout(() => {
+        onBootComplete();
+      }, 500);
+      timers.push(doneT);
     }, 1500);
+    timers.push(completionTimer);
 
-    return () => clearTimeout(completionTimer);
+    return () => {
+      timers.forEach(t => clearTimeout(t as any));
+    };
   }, [onBootComplete]);
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-[#07080b] transition-opacity duration-700 ${
+      className={`fixed inset-0 z-[10000] flex items-center justify-center bg-[#07080b] transition-opacity duration-700 ${
         isDone ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >

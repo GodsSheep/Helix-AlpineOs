@@ -331,30 +331,30 @@ Main Function OpCodes:
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-4">
               {guiPresets.map((preset) => (
-                <div key={preset.name} className="p-4 bg-[#121520] border border-white/10 rounded-2xl flex flex-col justify-between hover:border-emerald-400/50 transition">
+                <div key={preset.name} className="p-4 bg-white/5 border border-white/5 rounded-2xl flex flex-col justify-between hover:border-[var(--accent)]/50 transition-all duration-200 group">
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-sm text-white flex items-center gap-2 font-mono">
-                        <span>{preset.icon}</span>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-semibold text-sm text-white flex items-center gap-2">
+                        <span className="text-lg">{preset.icon}</span>
                         <span>{preset.name}</span>
                       </span>
-                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold border border-emerald-500/30">
+                      <span className="px-2 py-0.5 rounded-lg bg-black/40 text-[var(--accent)] font-mono text-[10px] font-bold border border-[var(--accent)]/20">
                         {preset.framework}
                       </span>
                     </div>
-                    <pre className="p-2.5 bg-black/60 border border-white/5 rounded-xl font-mono text-[10px] text-emerald-300/90 overflow-x-auto max-h-28 mb-3">
+                    <pre className="p-3 bg-black/40 border border-white/5 rounded-xl font-mono text-[10px] text-gray-400 overflow-x-auto max-h-24 mb-3">
                       {preset.code}
                     </pre>
                   </div>
 
                   <button
                     onClick={() => handleLaunchGui(preset.code, preset.name)}
-                    className="w-full py-2 bg-emerald-500 text-black font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-400 transition cursor-pointer font-mono text-xs shadow-lg shadow-emerald-500/10"
+                    className="w-full py-2 bg-white/5 hover:bg-[var(--accent)] hover:text-black font-semibold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer font-mono text-xs border border-white/5"
                   >
                     <Monitor className="w-3.5 h-3.5" />
-                    <span>Launch {preset.framework} Window (:0.0)</span>
+                    <span>Launch Window (:0.0)</span>
                   </button>
                 </div>
               ))}

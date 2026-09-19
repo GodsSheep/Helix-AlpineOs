@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Kernel } from '../kernel';
 import { SoundManager } from '../kernel/SoundManager';
 import { AppId } from '../kernel/types';
+import { Settings as SettingsService } from '../kernel/Settings';
+import { Toast } from '../kernel/Toast';
 import {
   Rocket,
   ChevronUp,
@@ -17,6 +19,7 @@ import {
   Settings,
   Power,
   ExternalLink,
+  Trash2,
 } from 'lucide-react';
 
 interface DockProps {
@@ -49,8 +52,9 @@ export const Dock: React.FC<DockProps> = ({
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Combine pinned apps and currently open apps
-  const allApps = Kernel.apps.getAll();
+  // Combine pinned apps and currently open apps (excluding uninstalled)
+  const uninstalledIds = new Set(SettingsService.get().uninstalledAppIds || []);
+  const allApps = Kernel.apps.getAll().filter(a => !uninstalledIds.has(a.id));
   const pinnedApps = allApps.filter(a => a.pinnedToDock);
   const unpinnedOpenApps = allApps.filter(a => !a.pinnedToDock && openAppIds.has(a.id));
   const dockApps = [...pinnedApps, ...unpinnedOpenApps];
@@ -245,6 +249,25 @@ export const Dock: React.FC<DockProps> = ({
                       <span>Pin to Start Bar</span>
                     </>
                   )}
+                </button>
+
+                {/* Uninstall & Move to Trash */}
+                <button
+                  onClick={async () => {
+                    SoundManager.play('trash');
+                    const uninstalled = [...(SettingsService.get().uninstalledAppIds || [])];
+                    if (!uninstalled.includes(app.id)) {
+                      uninstalled.push(app.id);
+                      SettingsService.update({ uninstalledAppIds: uninstalled });
+                    }
+                    Kernel.wm.closeByAppId(app.id);
+                    setContextMenu(null);
+                    Toast.show(`Uninstalled ${app.title} (Moved to Trash)`, '🗑️');
+                  }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-rose-500/20 text-rose-300 transition text-left cursor-pointer font-medium"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Uninstall & Move to Trash</span>
                 </button>
 
                 {/* Close All Windows across System */}

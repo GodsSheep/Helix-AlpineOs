@@ -49,8 +49,11 @@ import {
   Terminal,
   ShieldCheck,
   FileText,
-  Flame
+  Flame,
+  Clock,
+  Trash2
 } from 'lucide-react';
+import { fetchAndValidateBiosRom, verifyBiosBufferIntegrity, KNOWN_BIOS_SIGNATURES } from '../../kernel/BiosValidator';
 
 const WALLPAPERS = [
   { id: 'mesh-emerald', name: 'Emerald Obsidian (Default)', url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2000&q=80' },
@@ -74,6 +77,10 @@ const ACCENT_COLORS = [
 type SettingsTab = 
   | 'appearance' 
   | 'display' 
+  | 'dock'
+  | 'appmgmt'
+  | 'topbar'
+  | 'cache'
   | 'power' 
   | 'vm' 
   | 'package' 
@@ -107,6 +114,29 @@ export const SettingsApp: React.FC = () => {
   const [dnsTarget, setDnsTarget] = useState('alpinelinux.org');
   const [dnsResult, setDnsResult] = useState<{ server: string; addresses: string[]; queryTimeMs: number } | null>(null);
   const [dnsRunning, setDnsRunning] = useState(false);
+
+  // BIOS Audit state
+  const [biosAuditResults, setBiosAuditResults] = useState<{ url: string; isValid: boolean; sha256: string; sizeBytes: number; message: string }[] | null>(null);
+  const [biosAuditRunning, setBiosAuditRunning] = useState(false);
+
+  const runBiosAudit = async () => {
+    setBiosAuditRunning(true);
+    const urls = Object.keys(KNOWN_BIOS_SIGNATURES);
+    const results = [];
+    for (const u of urls) {
+      const res = await fetchAndValidateBiosRom(u);
+      results.push({
+        url: u,
+        isValid: res.validation.isValid,
+        sha256: res.validation.sha256,
+        sizeBytes: res.validation.sizeBytes,
+        message: res.validation.message
+      });
+    }
+    setBiosAuditResults(results);
+    setBiosAuditRunning(false);
+    notify('BIOS ROM & Firmware Integrity Audit Completed');
+  };
 
   useEffect(() => {
     const unsub = Kernel.settings.subscribe((s) => {
@@ -216,6 +246,10 @@ export const SettingsApp: React.FC = () => {
   const tabs: { id: SettingsTab; label: string; icon: any }[] = [
     { id: 'appearance', label: 'Appearance', icon: Palette },
     { id: 'display', label: 'Display & Scaling', icon: Monitor },
+    { id: 'dock', label: 'Dock & Bottom Bar', icon: Layers },
+    { id: 'appmgmt', label: 'Apps & Recycle Bin', icon: Trash2 },
+    { id: 'topbar', label: 'Top Bar & Menubar', icon: Sliders },
+    { id: 'cache', label: 'VFS & BIOS Firmware', icon: ShieldCheck },
     { id: 'power', label: 'Power & Battery', icon: Zap },
     { id: 'vm', label: 'Linux & VM Engine', icon: Cpu },
     { id: 'package', label: 'Packages & APK', icon: Package },
@@ -679,6 +713,571 @@ export const SettingsApp: React.FC = () => {
                   </label>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* TAB: DOCK & BOTTOM BAR */}
+          {activeTab === 'dock' && (
+            <div className="max-w-3xl space-y-6">
+              <div className="p-4 rounded-2xl bg-[#141724] border border-white/10 space-y-4">
+                <div>
+                  <h3 className="font-bold text-white text-sm">Dock Bar Position & Layout</h3>
+                  <p className="text-[11px] text-gray-400">Choose screen edge attachment and sizing options for the desktop Dock</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-gray-300 font-semibold block mb-1.5">Dock Screen Position</label>
+                    <select
+                      value={settings.dockPosition || 'bottom'}
+                      onChange={(e) => handleUpdate({ dockPosition: e.target.value as any })}
+                      className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-white font-medium"
+                    >
+                      <option value="bottom">Bottom Edge (Standard Desktop)</option>
+                      <option value="top">Top Edge (Integrated Bar)</option>
+                      <option value="left">Left Edge (Ubuntu / GNOME Dock)</option>
+                      <option value="right">Right Edge (Vertical Panel)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-gray-300 font-semibold block mb-1.5">Dock Icon Size</label>
+                    <select
+                      value={settings.dockIconSize || 'medium'}
+                      onChange={(e) => handleUpdate({ dockIconSize: e.target.value as any })}
+                      className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-white font-medium"
+                    >
+                      <option value="small">Compact (32px)</option>
+                      <option value="medium">Standard (48px)</option>
+                      <option value="large">Spacious (64px)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-white/10">
+                  <label className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 cursor-pointer">
+                    <div>
+                      <div className="font-semibold text-white">Auto-Hide Dock Bar</div>
+                      <div className="text-[10px] text-gray-400">Automatically collapse Dock when windows overlap or screen space is constrained</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.dockAutoHide || false}
+                      onChange={(e) => handleUpdate({ dockAutoHide: e.target.checked })}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 cursor-pointer">
+                    <div>
+                      <div className="font-semibold text-white">Active App Indicators</div>
+                      <div className="text-[10px] text-gray-400">Display glowing green dot underneath currently running applications</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.dockShowActiveIndicators ?? true}
+                      onChange={(e) => handleUpdate({ dockShowActiveIndicators: e.target.checked })}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 cursor-pointer">
+                    <div>
+                      <div className="font-semibold text-white">Icon Hover Magnification</div>
+                      <div className="text-[10px] text-gray-400">Smooth zoom magnification effect when hovering over Dock icons</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.dockMagnification ?? true}
+                      onChange={(e) => handleUpdate({ dockMagnification: e.target.checked })}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer"
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: APP MANAGEMENT, PYTHON & RECYCLE BIN */}
+          {activeTab === 'appmgmt' && (
+            <div className="max-w-3xl space-y-6">
+              {/* Python Language Engine Settings */}
+              <div className="p-4 rounded-2xl bg-[#141724] border border-white/10 space-y-4">
+                <div>
+                  <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                    <span className="text-lg">🐍</span> Python Standard Language Engine
+                  </h3>
+                  <p className="text-[11px] text-gray-400">Configure default execution backend for running Python scripts, apps, and games</p>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-gray-300 font-semibold block mb-1.5">Execution Engine Backend</label>
+                    <select
+                      value={settings.pythonExecutionEngine || 'kernel'}
+                      onChange={(e) => handleUpdate({ pythonExecutionEngine: e.target.value as any })}
+                      className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-white font-medium"
+                    >
+                      <option value="kernel">Helix Alpine Linux Kernel (/usr/bin/python3)</option>
+                      <option value="wasm">Embedded Pyodide WASM Runtime (Client JIT)</option>
+                      <option value="hybrid">Hybrid Auto-Select (Kernel primary, WASM fallback)</option>
+                    </select>
+                  </div>
+
+                  <label className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 cursor-pointer">
+                    <div>
+                      <div className="font-semibold text-white">Auto-Load Scientific Libraries</div>
+                      <div className="text-[10px] text-gray-400">Pre-import NumPy, SymPy, and Matplotlib in Python REPL environment</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.pythonAutoImportNumpy ?? true}
+                      onChange={(e) => handleUpdate({ pythonAutoImportNumpy: e.target.checked })}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Uninstalled Apps & Reinstallation Studio */}
+              <div className="p-4 rounded-2xl bg-[#141724] border border-white/10 space-y-4">
+                <div>
+                  <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                    <Package className="w-4 h-4 text-purple-400" /> App Lifecycle & Uninstalled Applications
+                  </h3>
+                  <p className="text-[11px] text-gray-400">Reinstall previously uninstalled applications or manage app installation state</p>
+                </div>
+
+                {(settings.uninstalledAppIds || []).length === 0 ? (
+                  <div className="p-4 rounded-xl bg-black/30 border border-white/5 text-center text-gray-500 italic">
+                    All system applications are currently installed and active.
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-56 overflow-y-auto">
+                    {(settings.uninstalledAppIds || []).map((appId) => {
+                      const appDef = Kernel.apps.get(appId as any);
+                      return (
+                        <div
+                          key={appId}
+                          className="p-3 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-xl">{appDef?.icon || '📦'}</span>
+                            <div>
+                              <div className="font-bold text-white">{appDef?.title || appId}</div>
+                              <div className="text-[10px] text-gray-400">Status: Uninstalled (In Trash)</div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                SoundManager.play('success');
+                                const current = settings.uninstalledAppIds || [];
+                                handleUpdate({ uninstalledAppIds: current.filter((id) => id !== appId) });
+                                notify(`Reinstalled ${appDef?.title || appId} successfully`);
+                              }}
+                              className="px-3 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-xs border border-emerald-500/30 transition cursor-pointer"
+                            >
+                              Reinstall App
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Trash & Recycle Bin Quota */}
+              <div className="p-4 rounded-2xl bg-[#141724] border border-white/10 space-y-4">
+                <div>
+                  <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                    <Trash2 className="w-4 h-4 text-rose-400" /> Trash & Recycle Bin Settings
+                  </h3>
+                  <p className="text-[11px] text-gray-400">Configure auto-cleanup cycles and confirmation preferences for deleted items</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-gray-300 font-semibold block mb-1.5">Auto-Empty Frequency</label>
+                    <select
+                      value={settings.trashAutoEmptyDays || 30}
+                      onChange={(e) => handleUpdate({ trashAutoEmptyDays: Number(e.target.value) })}
+                      className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-white font-medium"
+                    >
+                      <option value={7}>After 7 Days</option>
+                      <option value={14}>After 14 Days</option>
+                      <option value={30}>After 30 Days (Standard)</option>
+                      <option value={0}>Never Auto-Empty (Manual Only)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-gray-300 font-semibold block mb-1.5">Trash Storage Capacity</label>
+                    <select
+                      value={settings.trashMaxCapacityMb || 256}
+                      onChange={(e) => handleUpdate({ trashMaxCapacityMb: Number(e.target.value) })}
+                      className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-white font-medium"
+                    >
+                      <option value={128}>128 MB Limit</option>
+                      <option value={256}>256 MB Limit (Default)</option>
+                      <option value={512}>512 MB Limit</option>
+                      <option value={1024}>1 GB Limit</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {activeTab === 'topbar' && (
+            <div className="max-w-3xl space-y-6">
+              {/* Header */}
+              <div className="p-4 rounded-2xl bg-[#141724] border border-white/10 flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-[#6ee7b7]/15 text-[#6ee7b7] border border-[#6ee7b7]/30">
+                    <Sliders className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white text-sm">Top Bar & Menubar Customization</h3>
+                    <p className="text-[11px] text-gray-400">
+                      Toggle top bar modules, configure clock preferences, and customize status bar items
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleUpdate({
+                    topbarShowOsBadge: true,
+                    topbarShowShellButton: true,
+                    topbarShowActivityButton: true,
+                    topbarShowSettingsButton: true,
+                    topbarShowZenButton: true,
+                    topbarShowPwaInstall: true,
+                    topbarShowBattery: true,
+                    topbarShowWifi: true,
+                    topbarShowQuickSettings: true,
+                    topbarShowLinuxStatus: true,
+                    topbarShowNotificationBell: true,
+                    topbarClockFormat: '12h',
+                    topbarShowClockSeconds: false,
+                  })}
+                  className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-gray-300 transition"
+                >
+                  Reset Top Bar Defaults
+                </button>
+              </div>
+
+              {/* Elements Toggles Grid */}
+              <div className="p-4 rounded-2xl bg-[#141724] border border-white/10 space-y-4">
+                <h4 className="font-bold text-white text-xs uppercase tracking-wider text-gray-400">
+                  Visible Header Modules & Controls
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition">
+                    <div>
+                      <div className="font-semibold text-white text-xs">Active OS & Kernel Badge</div>
+                      <div className="text-[10px] text-gray-400">Displays active distro name & profile switcher trigger</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.topbarShowOsBadge ?? true}
+                      onChange={(e) => handleUpdate({ topbarShowOsBadge: e.target.checked })}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer shrink-0"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition">
+                    <div>
+                      <div className="font-semibold text-white text-xs">Terminal Shell Quick Launcher</div>
+                      <div className="text-[10px] text-gray-400">Shell icon for instant terminal window access</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.topbarShowShellButton ?? true}
+                      onChange={(e) => handleUpdate({ topbarShowShellButton: e.target.checked })}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer shrink-0"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition">
+                    <div>
+                      <div className="font-semibold text-white text-xs">Activity Monitor Launcher</div>
+                      <div className="text-[10px] text-gray-400">System task manager & memory usage indicator</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.topbarShowActivityButton ?? true}
+                      onChange={(e) => handleUpdate({ topbarShowActivityButton: e.target.checked })}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer shrink-0"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition">
+                    <div>
+                      <div className="font-semibold text-white text-xs">Settings Quick Button</div>
+                      <div className="text-[10px] text-gray-400">Top bar launcher button for System Settings</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.topbarShowSettingsButton ?? true}
+                      onChange={(e) => handleUpdate({ topbarShowSettingsButton: e.target.checked })}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer shrink-0"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition">
+                    <div>
+                      <div className="font-semibold text-white text-xs">Zen / Screen Space Maximizer</div>
+                      <div className="text-[10px] text-gray-400">Compact layout toggle for small displays</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.topbarShowZenButton ?? true}
+                      onChange={(e) => handleUpdate({ topbarShowZenButton: e.target.checked })}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer shrink-0"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition">
+                    <div>
+                      <div className="font-semibold text-white text-xs">In-App PWA Install Button</div>
+                      <div className="text-[10px] text-gray-400">One-click PWA desktop app installation banner</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.topbarShowPwaInstall ?? true}
+                      onChange={(e) => handleUpdate({ topbarShowPwaInstall: e.target.checked })}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer shrink-0"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition">
+                    <div>
+                      <div className="font-semibold text-white text-xs">Battery Status Sensor</div>
+                      <div className="text-[10px] text-gray-400">Live hardware battery level & power status</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.topbarShowBattery ?? true}
+                      onChange={(e) => handleUpdate({ topbarShowBattery: e.target.checked })}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer shrink-0"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition">
+                    <div>
+                      <div className="font-semibold text-white text-xs">Wi-Fi Network Indicator & Flyout</div>
+                      <div className="text-[10px] text-gray-400">Wireless network status and fast connection menu</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.topbarShowWifi ?? true}
+                      onChange={(e) => handleUpdate({ topbarShowWifi: e.target.checked })}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer shrink-0"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition">
+                    <div>
+                      <div className="font-semibold text-white text-xs">Quick Control Center</div>
+                      <div className="text-[10px] text-gray-400">Sliders button to pop out system control center</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.topbarShowQuickSettings ?? true}
+                      onChange={(e) => handleUpdate({ topbarShowQuickSettings: e.target.checked })}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer shrink-0"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition">
+                    <div>
+                      <div className="font-semibold text-white text-xs">Linux Guest Kernel Pulse Dot</div>
+                      <div className="text-[10px] text-gray-400">Live status indicator for guest kernel</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.topbarShowLinuxStatus ?? true}
+                      onChange={(e) => handleUpdate({ topbarShowLinuxStatus: e.target.checked })}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer shrink-0"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition">
+                    <div>
+                      <div className="font-semibold text-white text-xs">Notification Center Bell</div>
+                      <div className="text-[10px] text-gray-400">Unread notifications count & alert pulse icon</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.topbarShowNotificationBell ?? true}
+                      onChange={(e) => handleUpdate({ topbarShowNotificationBell: e.target.checked })}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer shrink-0"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* System Clock Preferences */}
+              <div className="p-4 rounded-2xl bg-[#141724] border border-white/10 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-cyan-400" />
+                  <h4 className="font-bold text-white text-sm">System Clock & Time Display Format</h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-2">
+                    <div className="font-semibold text-white text-xs">Time Format</div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleUpdate({ topbarClockFormat: '12h' })}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                          settings.topbarClockFormat !== '24h'
+                            ? 'bg-[#6ee7b7] text-black'
+                            : 'bg-white/10 text-white hover:bg-white/20'
+                        }`}
+                      >
+                        12-Hour (1:30 PM)
+                      </button>
+                      <button
+                        onClick={() => handleUpdate({ topbarClockFormat: '24h' })}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                          settings.topbarClockFormat === '24h'
+                            ? 'bg-[#6ee7b7] text-black'
+                            : 'bg-white/10 text-white hover:bg-white/20'
+                        }`}
+                      >
+                        24-Hour (13:30)
+                      </button>
+                    </div>
+                  </div>
+
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition">
+                    <div>
+                      <div className="font-semibold text-white text-xs">Show Seconds Count</div>
+                      <div className="text-[10px] text-gray-400">Include live seconds timer in header clock</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.topbarShowClockSeconds ?? false}
+                      onChange={(e) => handleUpdate({ topbarShowClockSeconds: e.target.checked })}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer shrink-0"
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2.6: VFS & BIOS FIRMWARE INTEGRITY */}
+          {activeTab === 'cache' && (
+            <div className="max-w-3xl space-y-6">
+              {/* Header */}
+              <div className="p-4 rounded-2xl bg-[#141724] border border-white/10 flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-[#6ee7b7]/15 text-[#6ee7b7] border border-[#6ee7b7]/30">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white text-sm">VFS Storage & BIOS Firmware Integrity</h3>
+                    <p className="text-[11px] text-gray-400">
+                      Persistent Virtual File System storage parameters and SHA-256 BIOS ROM verification
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={runBiosAudit}
+                  disabled={biosAuditRunning}
+                  className="px-4 py-2 rounded-xl bg-[#6ee7b7] hover:bg-[#5eead4] text-black font-semibold text-xs transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${biosAuditRunning ? 'animate-spin' : ''}`} />
+                  <span>{biosAuditRunning ? 'Auditing ROMs...' : 'Run BIOS Integrity Audit'}</span>
+                </button>
+              </div>
+
+              {/* Safety Toggles */}
+              <div className="p-4 rounded-2xl bg-[#141724] border border-white/10 space-y-3">
+                <h4 className="font-bold text-white text-xs uppercase tracking-wider text-gray-400">
+                  Storage & Boot Protection Controls
+                </h4>
+
+                <label className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition">
+                  <div>
+                    <div className="font-semibold text-white text-xs">Verify SHA-256 BIOS ROM Integrity Before VM Boot</div>
+                    <div className="text-[10px] text-gray-400">Verifies binary signatures and magic bytes of x86 ROMs before launch</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.biosIntegrityValidationOnBoot ?? true}
+                    onChange={(e) => handleUpdate({ biosIntegrityValidationOnBoot: e.target.checked })}
+                    className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer shrink-0"
+                  />
+                </label>
+
+                <label className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition">
+                  <div>
+                    <div className="font-semibold text-white text-xs">Prioritize Persistent VFS File Storage</div>
+                    <div className="text-[10px] text-gray-400">Prevents browser auto-eviction of user VFS files and OS disks</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.prioritizeVfsStorage ?? true}
+                    onChange={(e) => handleUpdate({ prioritizeVfsStorage: e.target.checked })}
+                    className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer shrink-0"
+                  />
+                </label>
+
+                <label className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition">
+                  <div>
+                    <div className="font-semibold text-white text-xs">Automatic Service Worker Cache Reload</div>
+                    <div className="text-[10px] text-gray-400">Attempts automatic SW reload if firmware network fetch is corrupted</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.swAutoReloadOnCorruption ?? true}
+                    onChange={(e) => handleUpdate({ swAutoReloadOnCorruption: e.target.checked })}
+                    className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer shrink-0"
+                  />
+                </label>
+              </div>
+
+              {/* Audit Results Panel */}
+              {biosAuditResults && (
+                <div className="p-4 rounded-2xl bg-[#141724] border border-white/10 space-y-3">
+                  <h4 className="font-bold text-white text-xs flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-[#6ee7b7]" />
+                    <span>Firmware Verification Report</span>
+                  </h4>
+
+                  <div className="space-y-2">
+                    {biosAuditResults.map((r, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                      >
+                        <div className="space-y-0.5">
+                          <div className="font-bold text-white text-xs font-mono">{r.url}</div>
+                          <div className="text-[10px] text-gray-400 font-mono">
+                            SHA-256: {r.sha256 ? `${r.sha256.substring(0, 24)}...` : 'N/A'} • {r.sizeBytes > 0 ? `${(r.sizeBytes / 1024).toFixed(1)} KB` : 'Embedded fallback'}
+                          </div>
+                          <div className="text-[10px] text-gray-300">{r.message}</div>
+                        </div>
+
+                        <span
+                          className={`self-start sm:self-center text-[10px] px-2.5 py-1 rounded-md font-bold font-mono uppercase shrink-0 ${
+                            r.isValid
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                          }`}
+                        >
+                          {r.isValid ? 'VALIDATED' : 'WARNING'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

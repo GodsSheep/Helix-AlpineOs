@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Kernel } from '../kernel';
 import { SoundManager } from '../kernel/SoundManager';
-import { Search, Sparkles, X, Plus, Pin, PinOff, Terminal, Globe, FileText, Check } from 'lucide-react';
+import { Search, Sparkles, X, Plus, Pin, PinOff, Terminal, Globe, FileText, Check, Trash2 } from 'lucide-react';
 import { AppDefinition } from '../kernel/types';
+import { Settings } from '../kernel/Settings';
 
 interface LauncherProps {
   isOpen: boolean;
@@ -50,8 +51,9 @@ export const Launcher: React.FC<LauncherProps> = ({ isOpen, onClose, onLaunchApp
 
   if (!isOpen) return null;
 
-  const allApps = Kernel.apps.getAll();
-  const filtered = Kernel.apps.search(query);
+  const uninstalledIds = new Set(Settings.get().uninstalledAppIds || []);
+  const allApps = Kernel.apps.getAll().filter(a => !uninstalledIds.has(a.id));
+  const filtered = Kernel.apps.search(query).filter(a => !uninstalledIds.has(a.id));
 
   const handleSelect = (appId: string) => {
     SoundManager.play('dock');
@@ -277,18 +279,38 @@ export const Launcher: React.FC<LauncherProps> = ({ isOpen, onClose, onLaunchApp
                   </div>
                 </div>
 
-                {/* Pin/Unpin Action */}
-                <button
-                  onClick={(e) => handleTogglePin(e, app.id)}
-                  className={`p-1.5 rounded-lg transition ml-2 ${
-                    app.pinnedToDock
-                      ? 'text-[#6ee7b7] hover:bg-[#6ee7b7]/20'
-                      : 'text-gray-500 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100'
-                  }`}
-                  title={app.pinnedToDock ? 'Unpin from dock' : 'Pin to dock'}
-                >
-                  {app.pinnedToDock ? <Pin className="w-3.5 h-3.5" /> : <PinOff className="w-3.5 h-3.5" />}
-                </button>
+                <div className="flex items-center gap-1 ml-2">
+                  {/* Pin/Unpin Action */}
+                  <button
+                    onClick={(e) => handleTogglePin(e, app.id)}
+                    className={`p-1.5 rounded-lg transition ${
+                      app.pinnedToDock
+                        ? 'text-[#6ee7b7] hover:bg-[#6ee7b7]/20'
+                        : 'text-gray-500 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100'
+                    }`}
+                    title={app.pinnedToDock ? 'Unpin from dock' : 'Pin to dock'}
+                  >
+                    {app.pinnedToDock ? <Pin className="w-3.5 h-3.5" /> : <PinOff className="w-3.5 h-3.5" />}
+                  </button>
+
+                  {/* Uninstall App Action */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      SoundManager.play('trash');
+                      const uninstalled = [...(Settings.get().uninstalledAppIds || [])];
+                      if (!uninstalled.includes(app.id)) {
+                        uninstalled.push(app.id);
+                        Settings.update({ uninstalledAppIds: uninstalled });
+                      }
+                      setAppListVersion((v) => v + 1);
+                    }}
+                    className="p-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/20 opacity-0 group-hover:opacity-100 transition"
+                    title="Uninstall App (Move to Trash)"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             ))
           ) : (

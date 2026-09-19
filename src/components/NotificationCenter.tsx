@@ -87,13 +87,20 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     };
   }, [isTimerRunning]);
 
-  // Click outside to close
+  // Click outside to close with opening grace period and robust composedPath detection
   useEffect(() => {
+    if (!isOpen) return;
+
+    const openTime = Date.now();
     const handleOutside = (e: PointerEvent) => {
-      if (isOpen && containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      // Ignore click-outside in first 180ms to prevent the triggering click from immediately closing
+      if (Date.now() - openTime < 180) return;
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         // Prevent closing if clicking time clock button in menubar
-        const target = e.target as HTMLElement;
-        if (!target.closest('#time-clock-btn')) {
+        const path = e.composedPath ? e.composedPath() : [];
+        const isClockBtn = path.some((el) => (el as HTMLElement)?.id === 'time-clock-btn') ||
+          Boolean((e.target as HTMLElement)?.closest?.('#time-clock-btn'));
+        if (!isClockBtn) {
           onClose();
         }
       }
@@ -179,7 +186,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     <div
       ref={containerRef}
       style={{ top: 'calc(44px + env(safe-area-inset-top, 0px))' }}
-      className="fixed right-2 sm:right-4 z-[9990] w-[calc(100vw-16px)] sm:w-[420px] max-h-[calc(100vh-60px)] bg-[#0d0f17]/98 border border-white/20 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.85)] backdrop-blur-2xl flex flex-col overflow-hidden text-[#edf1f7] text-xs animate-in slide-in-from-top-3 duration-200"
+      className="fixed right-2 sm:right-4 z-[99999999] w-[calc(100vw-16px)] sm:w-[420px] max-h-[calc(100vh-60px)] bg-[#0d0f17]/98 border border-white/20 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.85)] backdrop-blur-2xl flex flex-col overflow-hidden text-[#edf1f7] text-xs animate-in slide-in-from-top-3 duration-200"
     >
       {/* Header Bar */}
       <div className="p-3.5 bg-white/[0.04] border-b border-white/10 flex items-center justify-between shrink-0 select-none">

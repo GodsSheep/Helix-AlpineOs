@@ -1,26 +1,54 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Kernel } from '../../kernel';
 import { SoundManager } from '../../kernel/SoundManager';
-import { Terminal, Trash2, Copy, Check, ZoomIn, ZoomOut, Sparkles, ChevronRight, Play } from 'lucide-react';
+import { RealHostTerminalClient } from '../../kernel/RealHostTerminal';
+import { TerminalThemeEngine, TerminalTheme, TERMINAL_THEMES } from '../../kernel/TerminalThemes';
+import { Toast } from '../../kernel/Toast';
+import { 
+  Terminal, 
+  Trash2, 
+  Copy, 
+  Check, 
+  ZoomIn, 
+  ZoomOut, 
+  Sparkles, 
+  Palette, 
+  Play, 
+  Loader2, 
+  X,
+  CheckCircle2,
+  Cpu
+} from 'lucide-react';
 
 interface HistoryItem {
   id: string;
-  type: 'in' | 'out' | 'system';
+  type: 'in' | 'out' | 'err' | 'system';
   text: string;
 }
 
 export const TerminalApp: React.FC = () => {
   const [input, setInput] = useState('');
+  const [currentUser, setCurrentUser] = useState<string>(Kernel.vm.getCurrentUser());
+  const [isRoot, setIsRoot] = useState<boolean>(Kernel.vm.isRoot());
+  const [hostname, setHostname] = useState<string>(Kernel.vm.getHostname());
+  const [osMeta, setOsMeta] = useState(Kernel.vm.getOsMetadata());
   const [cwd, setCwd] = useState<string>(Kernel.vm.getCwd() || '/mnt/helix');
   const [fontSize, setFontSize] = useState<number>(12);
   const [copied, setCopied] = useState(false);
-  const [history, setHistory] = useState<HistoryItem[]>([
-    {
-      id: 'init-1',
-      type: 'system',
-      text: 'Alpine Linux v3.20 (x86_64-pc-linux-musl) - Helix Virtual Host Engine\nType "help" for a list of available Linux commands or "apk info" for packages.\n',
-    },
-  ]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [isRealConnected, setIsRealConnected] = useState(true);
+  const [theme, setTheme] = useState<TerminalTheme>(TerminalThemeEngine.getActiveTheme());
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+
+  const [history, setHistory] = useState<HistoryItem[]>(() => {
+    return [
+      {
+        id: 'init-1',
+        type: 'system',
+        text: `Helix OS Emulated Linux Terminal (Real OS Host Process Stream)\nReal-time POSIX execution enabled. Type any Linux command, 'help', 'sudo su', or 'theme <nord|gruvbox|dracula>'.\n`,
+      },
+    ];
+  });
   const [cmdHistory, setCmdHistory] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('helix_term_history');
@@ -32,19 +60,56 @@ export const TerminalApp: React.FC = () => {
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const themeMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const unsubTheme = TerminalThemeEngine.subscribe((t) => {
+      setTheme(t);
+    });
+    return () => unsubTheme();
+  }, []);
 
   const getPromptSymbol = (currentDir: string) => {
-    if (currentDir === '/mnt/helix') return '~';
+    const home = isRoot ? '/root' : '/mnt/helix';
+    if (currentDir === home || currentDir === '/mnt/helix') return '~';
     return currentDir;
+  };
+
+  const getFullPrompt = (currentDir: string) => {
+    const symbol = isRoot ? '#' : '$';
+    return `${currentUser}@${hostname}:${getPromptSymbol(currentDir)}${symbol}`;
   };
 
   useEffect(() => {
     setCwd(Kernel.vm.getCwd());
-  }, []);
+    setHostname(Kernel.vm.getHostname());
+    setOsMeta(Kernel.vm.getOsMetadata());
+
+    const unsubUser = Kernel.vm.onUserChange((user, root) => {
+      setCurrentUser(user);
+      setIsRoot(root);
+      setCwd(Kernel.vm.getCwd());
+    });
+
+    const unsubOs = Kernel.vm.onOsChange((_id, meta) => {
+      setOsMeta(meta);
+      setHostname(Kernel.vm.getHostname());
+      setCwd(Kernel.vm.getCwd());
+    });
+
+    RealHostTerminalClient.checkBackend().then((ok) => {
+      setIsRealConnected(ok);
+    });
+
+    return () => {
+      unsubUser();
+      unsubOs();
+    };
+  }, [isRoot]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [history]);
+    bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+  }, [history, isRunning]);
 
   useEffect(() => {
     const unsub = Kernel.vm.onTerminalData((data) => {
@@ -66,12 +131,25 @@ export const TerminalApp: React.FC = () => {
     return () => unsub();
   }, []);
 
+  // Click outside to close theme selector
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (themeMenuRef.current && !themeMenuRef.current.contains(e.target as Node)) {
+        setIsThemeMenuOpen(false);
+      }
+    };
+    if (isThemeMenuOpen) {
+      window.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => window.removeEventListener('mousedown', handleClickOutside);
+  }, [isThemeMenuOpen]);
+
   const handleRunCommand = async (commandToRun: string) => {
     const command = commandToRun.trim();
-    if (!command) return;
+    if (!command || isRunning) return;
 
     SoundManager.play('key');
-    const activePrompt = `${getPromptSymbol(cwd)}$`;
+    const promptStr = getFullPrompt(cwd);
     
     setCmdHistory((prev) => {
       const updated = [...prev.slice(-49), command];
@@ -83,7 +161,7 @@ export const TerminalApp: React.FC = () => {
 
     setHistory((prev) => [
       ...prev,
-      { id: Math.random().toString(), type: 'in', text: `${activePrompt} ${command}` },
+      { id: Math.random().toString(), type: 'in', text: `${promptStr} ${command}` },
     ]);
 
     if (command.toLowerCase() === 'clear' || command.toLowerCase() === 'cls') {
@@ -92,13 +170,68 @@ export const TerminalApp: React.FC = () => {
       return;
     }
 
+    // Built-in theme command handler
+    if (command.toLowerCase().startsWith('theme') || command.toLowerCase().startsWith('colorscheme')) {
+      const parts = command.split(/\s+/);
+      if (parts.length === 1 || parts[1] === 'list') {
+        const listText = [
+          'Available Terminal Themes:',
+          ...TerminalThemeEngine.getAllThemes().map(
+            (t) => `  * ${t.id.padEnd(12)} - ${t.name} (${t.description})`
+          ),
+          `\nActive Theme: ${theme.name} (${theme.id})`,
+          'Usage: theme <name>  (e.g., theme nord, theme dracula, theme gruvbox)',
+        ].join('\n');
+        setHistory((prev) => [
+          ...prev,
+          { id: Math.random().toString(), type: 'out', text: listText + '\n' },
+        ]);
+        return;
+      }
+
+      const targetId = parts[1].toLowerCase();
+      const success = TerminalThemeEngine.setTheme(targetId);
+      if (success) {
+        SoundManager.play('click');
+        const active = TerminalThemeEngine.getActiveTheme();
+        Toast.show(`Terminal theme switched to ${active.name}`, '🎨');
+        setHistory((prev) => [
+          ...prev,
+          { id: Math.random().toString(), type: 'system', text: `Terminal theme successfully changed to: ${active.name}\n` },
+        ]);
+      } else {
+        SoundManager.play('error');
+        setHistory((prev) => [
+          ...prev,
+          { id: Math.random().toString(), type: 'err', text: `Unknown theme: '${targetId}'. Type 'theme list' to view all available themes.\n` },
+        ]);
+      }
+      return;
+    }
+
+    setIsRunning(true);
+
     try {
       const output = await Kernel.vm.executeCommand(command);
       setCwd(Kernel.vm.getCwd());
+      setCurrentUser(Kernel.vm.getCurrentUser());
+      setIsRoot(Kernel.vm.isRoot());
+
       if (output) {
+        const isError = output.startsWith('Error:') || output.includes('command not found') || output.includes('No such file') || output.includes('can\'t');
+        if (isError) {
+          SoundManager.play('error');
+        } else {
+          SoundManager.play('click');
+        }
+
         setHistory((prev) => [
           ...prev,
-          { id: Math.random().toString(), type: 'out', text: output.endsWith('\n') ? output : output + '\n' },
+          {
+            id: Math.random().toString(),
+            type: isError ? 'err' : 'out',
+            text: output.endsWith('\n') ? output : output + '\n',
+          },
         ]);
       }
     } catch (err: unknown) {
@@ -106,20 +239,22 @@ export const TerminalApp: React.FC = () => {
       setCwd(Kernel.vm.getCwd());
       setHistory((prev) => [
         ...prev,
-        { id: Math.random().toString(), type: 'out', text: `Error: ${(err as Error).message}\n` },
+        { id: Math.random().toString(), type: 'err', text: `Error: ${(err as Error).message}\n` },
       ]);
+    } finally {
+      setIsRunning(false);
     }
   };
 
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const activePrompt = `${getPromptSymbol(cwd)}$`;
+    const promptStr = getFullPrompt(cwd);
 
     // Ctrl+C: Cancel current line
     if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) {
       e.preventDefault();
       setHistory((prev) => [
         ...prev,
-        { id: Math.random().toString(), type: 'in', text: `${activePrompt} ${input}^C` },
+        { id: Math.random().toString(), type: 'in', text: `${promptStr} ${input}^C` },
       ]);
       setInput('');
       setHistoryIndex(-1);
@@ -140,11 +275,12 @@ export const TerminalApp: React.FC = () => {
         const trimmed = parts[0].trim().toLowerCase();
         if (!trimmed) return;
         const commonCmds = [
-          'help', 'cd', 'ls', 'cat', 'pwd', 'whoami', 'hostname', 'date', 'uptime', 
-          'neofetch', 'htop', 'top', 'free', 'df', 'ps', 'apk', 'python3', 'node', 'gcc', 
-          'git', 'clear', 'mkdir', 'touch', 'rm', 'cp', 'mv', 'sh', 'bash', 'reboot', 'halt',
-          'tree', 'grep', 'wc', 'head', 'tail', 'find', 'diff', 'curl', 'wget', 'ping',
-          'ifconfig', 'ip', 'dmesg', 'rc-status', 'cal', 'cmatrix', 'figlet', 'alias', 'history'
+          'help', 'cd', 'ls', 'cat', 'pwd', 'whoami', 'id', 'su', 'sudo', 'groups', 'users', 'who', 'w',
+          'hostname', 'date', 'uptime', 'neofetch', 'htop', 'top', 'free', 'df', 'ps', 'apk', 'apt', 'pacman',
+          'python3', 'node', 'gcc', 'git', 'clear', 'mkdir', 'touch', 'rm', 'cp', 'mv', 'sh', 'bash',
+          'reboot', 'halt', 'tree', 'grep', 'wc', 'head', 'tail', 'find', 'diff', 'curl', 'wget', 'ping',
+          'ifconfig', 'ip', 'dmesg', 'rc-status', 'cal', 'cmatrix', 'figlet', 'alias', 'history',
+          'theme', 'colorscheme', 'sort', 'uniq', 'cut', 'tr', 'sed', 'awk', 'base64', 'md5sum', 'sha256sum', 'lsblk', 'fdisk'
         ];
         const match = commonCmds.find(c => c.startsWith(trimmed));
         if (match) {
@@ -196,7 +332,7 @@ export const TerminalApp: React.FC = () => {
       if (!command) {
         setHistory((prev) => [
           ...prev,
-          { id: Math.random().toString(), type: 'in', text: `${activePrompt} ` },
+          { id: Math.random().toString(), type: 'in', text: `${promptStr} ` },
         ]);
         return;
       }
@@ -218,48 +354,163 @@ export const TerminalApp: React.FC = () => {
   };
 
   const quickCommands = [
-    'neofetch',
-    'htop',
-    'tree',
-    'free -h',
+    'uname -a',
+    'whoami',
+    'uptime',
     'df -h',
-    'cat /etc/os-release',
-    'ip a',
-    'apk info',
-    'dmesg',
-    'uname -a'
+    'free -m',
+    'ps aux',
+    'neofetch',
+    'theme list',
+    'node -v',
+    'python3 --version',
   ];
 
   return (
     <div
-      className="h-full flex flex-col bg-[#07080b] font-mono text-[#edf1f7] select-text overflow-hidden"
+      className="h-full flex flex-col font-mono select-text overflow-hidden transition-colors duration-200"
+      style={{ backgroundColor: theme.bg, color: theme.outputColor }}
       onClick={handleContainerClick}
     >
       {/* Top Terminal Action Bar */}
-      <div className="h-9 px-3 bg-[#0d0f17] border-b border-white/10 flex items-center justify-between gap-2 shrink-0 select-none text-xs">
+      <div
+        className="h-9 px-3 border-b flex items-center justify-between gap-2 shrink-0 select-none text-xs transition-colors duration-200 relative"
+        style={{ backgroundColor: theme.topBarBg, borderColor: theme.borderColor }}
+      >
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#6ee7b7]/10 text-[#6ee7b7] border border-[#6ee7b7]/30 text-[11px] font-semibold">
+          <button
+            onClick={() => Kernel.wm.launch('osselector')}
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded border text-[11px] font-semibold transition hover:bg-white/10 cursor-pointer"
+            style={{ backgroundColor: theme.badgeBg, color: theme.badgeText, borderColor: theme.borderColor }}
+            title={`Active OS: ${osMeta.name} ${osMeta.version} - Click to switch OS`}
+          >
+            <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="font-bold">{osMeta.name}</span>
+          </button>
+
+          <div
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded border text-[11px] font-semibold transition-colors"
+            style={{ backgroundColor: theme.badgeBg, color: theme.badgeText, borderColor: theme.borderColor }}
+          >
             <Terminal className="w-3.5 h-3.5" />
-            <span>ash / busybox</span>
+            <span>real-sh</span>
+            {isRealConnected ? (
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Connected to Real OS Host Process" />
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-amber-400" title="Fallback MicroVM active" />
+            )}
+            {isRoot && (
+              <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 border border-red-500/40 rounded text-[9px] font-mono font-bold tracking-wider">
+                ROOT #
+              </span>
+            )}
           </div>
           <span className="text-white/20 text-xs hidden sm:inline">|</span>
-          <span className="text-[11px] text-[#8b93a7] hidden md:inline truncate max-w-[180px]">
-            root@helix-alpine:{getPromptSymbol(cwd)}
+          <span className="text-[11px] hidden md:inline truncate max-w-[240px] font-mono" style={{ color: theme.systemColor }}>
+            <span style={{ color: isRoot ? '#f87171' : theme.promptUser, fontWeight: 'bold' }}>{currentUser}</span>
+            <span style={{ color: theme.promptHost }}>@{hostname}:</span>
+            <span style={{ color: theme.promptPath }}>{getPromptSymbol(cwd)}</span>
+            <span style={{ color: isRoot ? '#f87171' : theme.promptSymbol, fontWeight: 'bold', marginLeft: '2px' }}>
+              {isRoot ? '#' : '$'}
+            </span>
           </span>
         </div>
 
         <div className="flex items-center gap-1">
+          {isRunning && (
+            <div className="flex items-center gap-1 text-[11px] text-amber-400 px-2 py-0.5 bg-amber-400/10 rounded border border-amber-400/20 mr-1">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span>executing...</span>
+            </div>
+          )}
+
+          {/* Theme Switcher Button */}
+          <div className="relative" ref={themeMenuRef}>
+            <button
+              onClick={() => setIsThemeMenuOpen((prev) => !prev)}
+              className="px-2 py-1 rounded hover:bg-white/10 transition flex items-center gap-1.5 text-[11px] cursor-pointer"
+              style={{ color: theme.accentColor }}
+              title={`Active theme: ${theme.name} (Click to switch)`}
+            >
+              <Palette className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline font-sans font-medium">{theme.name.split(' ')[0]}</span>
+            </button>
+
+            {/* Theme Selector Popover */}
+            {isThemeMenuOpen && (
+              <div
+                className="absolute right-0 top-full mt-1.5 w-72 bg-[#121520] border border-white/15 rounded-2xl shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 select-none"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between px-2 py-1 mb-2 border-b border-white/10">
+                  <span className="text-xs font-bold text-white flex items-center gap-1.5 font-sans">
+                    <Palette className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Terminal Themes</span>
+                  </span>
+                  <button
+                    onClick={() => setIsThemeMenuOpen(false)}
+                    className="p-1 text-gray-400 hover:text-white rounded-lg transition"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="max-h-64 overflow-y-auto space-y-1 pr-1 font-sans">
+                  {TerminalThemeEngine.getAllThemes().map((t) => {
+                    const isActive = t.id === theme.id;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => {
+                          TerminalThemeEngine.setTheme(t.id);
+                          SoundManager.play('click');
+                          Toast.show(`Theme: ${t.name}`, '🎨');
+                          setIsThemeMenuOpen(false);
+                        }}
+                        className={`w-full p-2 rounded-xl flex items-center justify-between text-left transition cursor-pointer border ${
+                          isActive
+                            ? 'bg-white/15 border-white/25 text-white shadow-sm'
+                            : 'bg-white/5 border-transparent hover:bg-white/10 hover:border-white/10 text-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {/* Color preview swatch dots */}
+                          <div className="flex items-center gap-0.5 shrink-0 p-1 rounded-lg border border-white/10" style={{ backgroundColor: t.bg }}>
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.promptUser }} />
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.promptPath }} />
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.promptSymbol }} />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-xs text-white truncate flex items-center gap-1">
+                              <span>{t.name}</span>
+                              {isActive && <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />}
+                            </div>
+                            <div className="text-[10px] text-gray-400 truncate">{t.description}</div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="w-[1px] h-4 bg-white/10 mx-1" />
+
           <button
             onClick={() => setFontSize((f) => Math.max(10, f - 1))}
-            className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition"
+            className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer"
             title="Decrease font size"
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
-          <span className="text-[10px] text-gray-500 font-mono w-5 text-center">{fontSize}</span>
+          <span className="text-[10px] font-mono w-5 text-center" style={{ color: theme.systemColor }}>
+            {fontSize}
+          </span>
           <button
             onClick={() => setFontSize((f) => Math.min(18, f + 1))}
-            className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition"
+            className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer"
             title="Increase font size"
           >
             <ZoomIn className="w-3.5 h-3.5" />
@@ -269,7 +520,8 @@ export const TerminalApp: React.FC = () => {
 
           <button
             onClick={handleCopyBuffer}
-            className="px-2 py-1 rounded hover:bg-white/10 text-gray-300 hover:text-[#6ee7b7] transition flex items-center gap-1 text-[11px]"
+            className="px-2 py-1 rounded hover:bg-white/10 transition flex items-center gap-1 text-[11px] cursor-pointer"
+            style={{ color: theme.outputColor }}
             title="Copy entire terminal buffer"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -278,7 +530,7 @@ export const TerminalApp: React.FC = () => {
 
           <button
             onClick={() => setHistory([])}
-            className="px-2 py-1 rounded hover:bg-red-500/20 text-gray-300 hover:text-red-400 transition flex items-center gap-1 text-[11px]"
+            className="px-2 py-1 rounded hover:bg-red-500/20 text-gray-300 hover:text-red-400 transition flex items-center gap-1 text-[11px] cursor-pointer"
             title="Clear terminal screen (Ctrl+L)"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -288,15 +540,24 @@ export const TerminalApp: React.FC = () => {
       </div>
 
       {/* Quick Linux Command Chips Carousel */}
-      <div className="px-3 py-1.5 bg-[#090b10] border-b border-white/5 flex items-center gap-1.5 overflow-x-auto shrink-0 select-none no-scrollbar">
-        <span className="text-[10px] uppercase font-bold text-[#8b93a7] shrink-0 mr-1 flex items-center gap-1">
-          <Sparkles className="w-3 h-3 text-[#6ee7b7]" /> Quick:
+      <div
+        className="px-3 py-1.5 border-b flex items-center gap-1.5 overflow-x-auto shrink-0 select-none no-scrollbar transition-colors duration-200"
+        style={{ backgroundColor: theme.topBarBg, borderColor: theme.borderColor }}
+      >
+        <span className="text-[10px] uppercase font-bold shrink-0 mr-1 flex items-center gap-1" style={{ color: theme.systemColor }}>
+          <Sparkles className="w-3 h-3" style={{ color: theme.accentColor }} /> Quick:
         </span>
         {quickCommands.map((cmd) => (
           <button
             key={cmd}
             onClick={() => handleRunCommand(cmd)}
-            className="px-2 py-0.5 bg-white/5 hover:bg-[#6ee7b7]/15 hover:text-[#6ee7b7] border border-white/10 hover:border-[#6ee7b7]/30 rounded text-[11px] text-gray-300 transition whitespace-nowrap cursor-pointer flex items-center gap-1"
+            disabled={isRunning}
+            className="px-2 py-0.5 rounded text-[11px] transition whitespace-nowrap cursor-pointer flex items-center gap-1 disabled:opacity-50 border hover:opacity-80"
+            style={{
+              backgroundColor: theme.chipBg,
+              color: theme.chipText,
+              borderColor: theme.chipBorder,
+            }}
           >
             <Play className="w-2.5 h-2.5 opacity-70" />
             <span>{cmd}</span>
@@ -307,28 +568,47 @@ export const TerminalApp: React.FC = () => {
       {/* Output Stream */}
       <div
         className="flex-1 overflow-y-auto p-3 space-y-1"
-        style={{ fontSize: `${fontSize}px`, lineHeight: 1.5 }}
+        style={{ fontSize: `${fontSize}px`, lineHeight: 1.5, backgroundColor: theme.bg }}
       >
         {history.map((item) => (
           <div key={item.id} className="whitespace-pre-wrap leading-relaxed break-all">
             {item.type === 'in' && (
-              <span className="text-[#6ee7b7] font-semibold">{item.text}</span>
+              <span style={{ color: theme.promptUser, fontWeight: 600 }}>{item.text}</span>
             )}
             {item.type === 'out' && (
-              <span className="text-[#d8e2dc]">{item.text}</span>
+              <span style={{ color: theme.outputColor }}>{item.text}</span>
+            )}
+            {item.type === 'err' && (
+              <span style={{ color: theme.errorColor, fontWeight: 500 }}>{item.text}</span>
             )}
             {item.type === 'system' && (
-              <span className="text-[#8b93a7] italic">{item.text}</span>
+              <span style={{ color: theme.systemColor, fontStyle: 'italic' }}>{item.text}</span>
             )}
           </div>
         ))}
+        {isRunning && (
+          <div className="flex items-center gap-2 text-xs py-1" style={{ color: theme.systemColor }}>
+            <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: theme.accentColor }} />
+            <span>Executing command on host OS in real-time...</span>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 
       {/* Input Prompt Row */}
-      <div className="border-t border-white/10 py-1.5 px-3 flex items-center gap-2 bg-[#0a0c12] shrink-0">
-        <span className="text-[#6ee7b7] font-bold tracking-tight whitespace-nowrap select-none flex items-center gap-1">
-          <span>{getPromptSymbol(cwd)}$</span>
+      <div
+        className="border-t py-2 px-3 flex items-center gap-2 shrink-0 font-mono transition-colors duration-200"
+        style={{ backgroundColor: theme.inputRowBg, borderColor: theme.borderColor }}
+      >
+        <span className="whitespace-nowrap select-none flex items-center text-xs">
+          <span style={{ color: isRoot ? '#f87171' : theme.promptUser, fontWeight: 'bold' }}>
+            {currentUser}@{hostname}
+          </span>
+          <span style={{ color: theme.promptHost }}>:</span>
+          <span style={{ color: theme.promptPath, fontWeight: 500 }}>{getPromptSymbol(cwd)}</span>
+          <span style={{ color: isRoot ? '#f87171' : theme.promptSymbol, fontWeight: 'bold', marginLeft: '4px' }}>
+            {isRoot ? '#' : '$'}
+          </span>
         </span>
         <input
           ref={inputRef}
@@ -337,11 +617,17 @@ export const TerminalApp: React.FC = () => {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           autoFocus
+          disabled={isRunning}
           spellCheck={false}
           autoComplete="off"
-          className="flex-1 bg-transparent border-0 text-[#6ee7b7] outline-none font-mono"
-          style={{ fontSize: `${fontSize}px`, touchAction: 'manipulation' }}
-          placeholder="Type a command (or press Tab for completion)..."
+          className="flex-1 bg-transparent border-0 outline-none font-mono text-xs focus:ring-0 disabled:opacity-50"
+          style={{
+            fontSize: `${fontSize}px`,
+            color: theme.inputColor,
+            caretColor: theme.caretColor,
+            touchAction: 'manipulation',
+          }}
+          placeholder={isRoot ? "root shell active - full privilege escalation (#)..." : "Type a Linux command or 'theme <nord|gruvbox|dracula>'..."}
         />
       </div>
     </div>

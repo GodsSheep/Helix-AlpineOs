@@ -272,24 +272,28 @@ export const RustCppStudioApp: React.FC = () => {
             <span>Native Code Presets</span>
           </h2>
 
-          <div className="space-y-1.5 flex-1">
+          <div className="space-y-2 h-0 flex-1 overflow-y-auto pr-1">
             {RUST_CPP_PRESETS.map((p) => (
               <button
                 key={p.id}
                 onClick={() => handleSelectPreset(p)}
-                className={`w-full p-2.5 rounded-xl border text-left transition cursor-pointer ${
+                className={`w-full p-3 rounded-xl border text-left transition-all duration-200 group ${
                   selectedPreset.id === p.id
-                    ? 'bg-amber-500/20 border-amber-400 text-white shadow-lg'
-                    : 'bg-black/30 border-white/5 text-gray-300 hover:bg-white/5'
+                    ? 'bg-[var(--accent)]/15 border-[var(--accent)]/40 shadow-[0_4px_16px_rgba(0,0,0,0.3)] ring-1 ring-[var(--accent)]/20'
+                    : 'bg-white/5 border-white/5 text-gray-300 hover:bg-white/10 hover:border-white/10'
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-bold text-xs truncate">{p.title}</span>
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-white/10 text-amber-300 uppercase">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className={`font-semibold text-xs truncate ${
+                    selectedPreset.id === p.id ? 'text-white' : 'text-gray-100'
+                  }`}>
+                    {p.title}
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded-lg text-[9px] font-mono bg-black/40 text-[var(--accent)] border border-[var(--accent)]/20 uppercase">
                     {p.lang}
                   </span>
                 </div>
-                <p className="text-[10px] text-gray-400 truncate">{p.description}</p>
+                <p className="text-[10px] text-gray-500 truncate group-hover:text-gray-400">{p.description}</p>
               </button>
             ))}
           </div>

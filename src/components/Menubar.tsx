@@ -12,7 +12,9 @@ import {
   Maximize2,
   Minimize2,
   ChevronsUpDown,
-  Bell
+  Bell,
+  Cpu,
+  Layers
 } from 'lucide-react';
 import { SystemState } from '../kernel';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -46,16 +48,30 @@ export const Menubar: React.FC<MenubarProps> = ({
   const [isWifiEnabled, setIsWifiEnabled] = useState(Network.getIsWifiPoweredOn());
   const [activeSsid, setActiveSsid] = useState<string | null>(Network.getActiveNetwork()?.ssid || null);
   const [unreadCount, setUnreadCount] = useState(NotificationService.getUnreadCount());
+  const [osMeta, setOsMeta] = useState(Kernel.vm.getOsMetadata());
+  const [settings, setSettings] = useState(Kernel.settings.get());
 
   const wifiMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const updateClock = () => {
       const d = new Date();
-      setTimeStr(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      const options: Intl.DateTimeFormatOptions = {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: settings.topbarClockFormat !== '24h',
+      };
+      if (settings.topbarShowClockSeconds) {
+        options.second = '2-digit';
+      }
+      setTimeStr(d.toLocaleTimeString([], options));
     };
     updateClock();
     const clockTimer = setInterval(updateClock, 1000);
+
+    const unsubSettings = Kernel.settings.subscribe((s) => {
+      setSettings(s);
+    });
 
     const unsubState = Kernel.state.subscribe((state) => {
       setSystemState(state);
@@ -70,6 +86,10 @@ export const Menubar: React.FC<MenubarProps> = ({
       setUnreadCount(NotificationService.getUnreadCount());
     });
 
+    const unsubOs = Kernel.vm.onOsChange((_id, meta) => {
+      setOsMeta(meta);
+    });
+
     const handlePointerDownOutside = (e: PointerEvent) => {
       if (wifiMenuRef.current && !wifiMenuRef.current.contains(e.target as Node)) {
         setIsWifiMenuOpen(false);
@@ -79,12 +99,14 @@ export const Menubar: React.FC<MenubarProps> = ({
 
     return () => {
       clearInterval(clockTimer);
+      unsubSettings();
       unsubState();
       unsubNet();
       unsubNotif();
+      unsubOs();
       window.removeEventListener('pointerdown', handlePointerDownOutside);
     };
-  }, []);
+  }, [settings.topbarClockFormat, settings.topbarShowClockSeconds]);
 
   const isLinuxReady = systemState.linux === 'ready';
 
@@ -104,38 +126,61 @@ export const Menubar: React.FC<MenubarProps> = ({
 
         <span className="text-white/20 hidden xs:inline">|</span>
 
-        <button
-          onClick={() => onOpenApp('term')}
-          className="p-1 sm:px-2 sm:py-1 rounded text-[#8b93a7] hover:text-white hover:bg-white/5 transition flex items-center gap-1 cursor-pointer"
-          title="Terminal Shell"
-        >
-          <Terminal className="w-3.5 h-3.5 text-[#6ee7b7]" />
-          <span className="hidden md:inline">Shell</span>
-        </button>
+        {/* Active OS Switcher Indicator */}
+        {settings.topbarShowOsBadge && (
+          <button
+            onClick={() => onOpenApp('osselector')}
+            className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition flex items-center gap-1.5 text-xs text-white cursor-pointer"
+            title={`Active OS: ${osMeta.name} ${osMeta.version} - Click to switch OS or tune BIOS`}
+          >
+            <Cpu className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span className="font-mono text-[11px] font-bold text-cyan-200 truncate max-w-[110px] sm:max-w-none">
+              {osMeta.name}
+            </span>
+            <span className="text-[9px] px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-mono hidden md:inline">
+              {osMeta.version}
+            </span>
+          </button>
+        )}
 
-        <button
-          onClick={() => onOpenApp('mon')}
-          className="p-1 sm:px-2 sm:py-1 rounded text-[#8b93a7] hover:text-white hover:bg-white/5 transition flex items-center gap-1 cursor-pointer"
-          title="System Activity Monitor"
-        >
-          <Activity className="w-3.5 h-3.5 text-cyan-400" />
-          <span className="hidden md:inline">Activity</span>
-        </button>
+        {settings.topbarShowShellButton && (
+          <button
+            onClick={() => onOpenApp('term')}
+            className="p-1 sm:px-2 sm:py-1 rounded text-[#8b93a7] hover:text-white hover:bg-white/5 transition flex items-center gap-1 cursor-pointer"
+            title="Terminal Shell"
+          >
+            <Terminal className="w-3.5 h-3.5 text-[#6ee7b7]" />
+            <span className="hidden md:inline">Shell</span>
+          </button>
+        )}
 
-        <button
-          onClick={() => onOpenApp('settings')}
-          className="p-1 sm:px-2 sm:py-1 rounded text-[#8b93a7] hover:text-white hover:bg-white/5 transition flex items-center gap-1 cursor-pointer"
-          title="Settings"
-        >
-          <SettingsIcon className="w-3.5 h-3.5 text-amber-400" />
-          <span className="hidden md:inline">Settings</span>
-        </button>
+        {settings.topbarShowActivityButton && (
+          <button
+            onClick={() => onOpenApp('mon')}
+            className="p-1 sm:px-2 sm:py-1 rounded text-[#8b93a7] hover:text-white hover:bg-white/5 transition flex items-center gap-1 cursor-pointer"
+            title="System Activity Monitor"
+          >
+            <Activity className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden md:inline">Activity</span>
+          </button>
+        )}
+
+        {settings.topbarShowSettingsButton && (
+          <button
+            onClick={() => onOpenApp('settings')}
+            className="p-1 sm:px-2 sm:py-1 rounded text-[#8b93a7] hover:text-white hover:bg-white/5 transition flex items-center gap-1 cursor-pointer"
+            title="Settings"
+          >
+            <SettingsIcon className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden md:inline">Settings</span>
+          </button>
+        )}
       </div>
 
       {/* Right items: Space Maximizer, PWA Install, Battery Indicator, WiFi, Quick Settings, Clock */}
       <div className="flex items-center gap-1 sm:gap-2 text-[#8b93a7]">
         {/* Workspace Space Maximizer (Zen Mode) */}
-        {onToggleZenMode && (
+        {settings.topbarShowZenButton && onToggleZenMode && (
           <button
             onClick={onToggleZenMode}
             className={`p-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer ${
@@ -148,43 +193,49 @@ export const Menubar: React.FC<MenubarProps> = ({
         )}
 
         {/* In-App PWA Install Trigger */}
-        <PWAInstallButton compact className="hidden xs:flex" />
+        {settings.topbarShowPwaInstall && (
+          <PWAInstallButton compact className="hidden xs:flex" />
+        )}
 
         {/* Real-Device Battery Status Indicator */}
-        <BatteryIndicator onOpenSettings={(tab) => onOpenApp('settings')} />
+        {settings.topbarShowBattery && (
+          <BatteryIndicator onOpenSettings={(tab) => onOpenApp('settings')} />
+        )}
 
         {/* WiFi Button with Dropdown Trigger */}
-        <div className="relative" ref={wifiMenuRef}>
-          <button
-            onClick={() => setIsWifiMenuOpen((prev) => !prev)}
-            className={`p-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer ${
-              isWifiMenuOpen
-                ? 'bg-white/15 text-[#6ee7b7]'
-                : isWifiEnabled && activeSsid
-                ? 'hover:bg-white/10 text-[#6ee7b7]'
-                : isWifiEnabled
-                ? 'hover:bg-white/10 text-amber-400'
-                : 'hover:bg-white/10 text-red-400'
-            }`}
-            title={`WiFi: ${isWifiEnabled ? (activeSsid ? `Connected to ${activeSsid}` : 'Disconnected (Scanning)') : 'Hardware Radio Disabled'}`}
-            aria-label="Wi-Fi Network Menu"
-          >
-            {isWifiEnabled ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5 text-red-400" />}
-          </button>
+        {settings.topbarShowWifi && (
+          <div className="relative" ref={wifiMenuRef}>
+            <button
+              onClick={() => setIsWifiMenuOpen((prev) => !prev)}
+              className={`p-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer ${
+                isWifiMenuOpen
+                  ? 'bg-white/15 text-[#6ee7b7]'
+                  : isWifiEnabled && activeSsid
+                  ? 'hover:bg-white/10 text-[#6ee7b7]'
+                  : isWifiEnabled
+                  ? 'hover:bg-white/10 text-amber-400'
+                  : 'hover:bg-white/10 text-red-400'
+              }`}
+              title={`WiFi: ${isWifiEnabled ? (activeSsid ? `Connected to ${activeSsid}` : 'Disconnected (Scanning)') : 'Hardware Radio Disabled'}`}
+              aria-label="Wi-Fi Network Menu"
+            >
+              {isWifiEnabled ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5 text-red-400" />}
+            </button>
 
-          {/* Wi-Fi Flyout Menu */}
-          <WifiFlyout
-            isOpen={isWifiMenuOpen}
-            onClose={() => setIsWifiMenuOpen(false)}
-            onOpenSettings={() => {
-              setIsWifiMenuOpen(false);
-              onOpenApp('settings');
-            }}
-          />
-        </div>
+            {/* Wi-Fi Flyout Menu */}
+            <WifiFlyout
+              isOpen={isWifiMenuOpen}
+              onClose={() => setIsWifiMenuOpen(false)}
+              onOpenSettings={() => {
+                setIsWifiMenuOpen(false);
+                onOpenApp('settings');
+              }}
+            />
+          </div>
+        )}
 
         {/* Quick Settings Control Center Button */}
-        {onToggleQuickSettings && (
+        {settings.topbarShowQuickSettings && onToggleQuickSettings && (
           <button
             onClick={onToggleQuickSettings}
             className={`p-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer ${
@@ -197,18 +248,20 @@ export const Menubar: React.FC<MenubarProps> = ({
         )}
 
         {/* Alpine Linux Kernel Status */}
-        <div className="hidden lg:flex items-center gap-1.5 font-mono text-[11px]" title={`Linux Guest: ${systemState.linux}`}>
-          <span
-            className={`w-2 h-2 rounded-full ${
-              isLinuxReady
-                ? 'bg-[#6ee7b7] shadow-[0_0_6px_#6ee7b7]'
-                : systemState.linux === 'booting'
-                ? 'bg-amber-400 animate-pulse'
-                : 'bg-red-500'
-            }`}
-          />
-          <span className="text-gray-300">linux-alpine</span>
-        </div>
+        {settings.topbarShowLinuxStatus && (
+          <div className="hidden lg:flex items-center gap-1.5 font-mono text-[11px]" title={`Linux Guest: ${systemState.linux}`}>
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isLinuxReady
+                  ? 'bg-[#6ee7b7] shadow-[0_0_6px_#6ee7b7]'
+                  : systemState.linux === 'booting'
+                  ? 'bg-amber-400 animate-pulse'
+                  : 'bg-red-500'
+              }`}
+            />
+            <span className="text-gray-300">linux-alpine</span>
+          </div>
+        )}
 
         {/* System Clock & Notification Center Trigger */}
         <button
@@ -221,7 +274,9 @@ export const Menubar: React.FC<MenubarProps> = ({
           }`}
           title="Open Notification Center & Calendar Hub"
         >
-          <Bell className={`w-3.5 h-3.5 ${unreadCount > 0 ? 'text-[#6ee7b7] animate-pulse' : 'text-gray-400'}`} />
+          {settings.topbarShowNotificationBell && (
+            <Bell className={`w-3.5 h-3.5 ${unreadCount > 0 ? 'text-[#6ee7b7] animate-pulse' : 'text-gray-400'}`} />
+          )}
           <span>{timeStr || '00:00'}</span>
           {unreadCount > 0 && (
             <span className="w-2 h-2 rounded-full bg-[#6ee7b7] shadow-[0_0_6px_#6ee7b7]" />

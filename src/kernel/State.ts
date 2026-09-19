@@ -3,6 +3,12 @@ export interface SystemState {
   linux: 'cold' | 'booting' | 'ready' | 'stopping' | 'stopped' | 'suspended' | 'error';
   network: 'online' | 'offline';
   sync: 'paused' | 'waiting' | 'synced' | 'error';
+  health?: {
+    vfs: string;
+    vm: string;
+    wm: number;
+    ts: number;
+  };
 }
 
 export class StateManager {

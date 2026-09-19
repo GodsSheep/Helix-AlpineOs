@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wifi, Globe, Server, RefreshCw, Shield, CheckCircle2, AlertCircle, PanelLeftClose, PanelLeft, Play } from 'lucide-react';
+import { Wifi, Globe, Server, RefreshCw, Shield, CheckCircle2, AlertCircle, PanelLeftClose, PanelLeft, Play, Briefcase, Database, Cpu, Activity } from 'lucide-react';
 
 interface TargetItem {
   host: string;
@@ -7,15 +7,19 @@ interface TargetItem {
   status: 'online' | 'warning' | 'offline';
   latency: string;
   ports: number[];
+  type: 'server' | 'endpoint' | 'node' | 'gateway';
 }
 
 export const NetScanApp: React.FC = () => {
   const [targets, setTargets] = useState<TargetItem[]>([
-    { host: 'alpine.linux.local', ip: '127.0.0.1', status: 'online', latency: '0.4ms', ports: [22, 80, 443, 3000] },
-    { host: 'kernel.gateway', ip: '192.168.1.1', status: 'online', latency: '1.2ms', ports: [53, 80, 443] },
-    { host: 'dns.upstream.net', ip: '8.8.8.8', status: 'online', latency: '14.8ms', ports: [53] },
-    { host: 'cloud.storage.node', ip: '10.0.4.15', status: 'warning', latency: '42.1ms', ports: [8080, 9000] },
-    { host: 'legacy.archive.org', ip: '172.16.254.1', status: 'offline', latency: 'Timeout', ports: [] },
+    { host: 'alpine.linux.local', ip: '127.0.0.1', status: 'online', latency: '0.4ms', ports: [22, 80, 443, 3000], type: 'node' },
+    { host: 'kernel.gateway', ip: '192.168.1.1', status: 'online', latency: '1.2ms', ports: [53, 80, 443], type: 'gateway' },
+    { host: 'dns.upstream.net', ip: '8.8.8.8', status: 'online', latency: '14.8ms', ports: [53], type: 'endpoint' },
+    { host: 'cloud.storage.node', ip: '10.0.4.15', status: 'warning', latency: '42.1ms', ports: [8080, 9000], type: 'server' },
+    { host: 'api.helix.os', ip: '192.168.1.200', status: 'online', latency: '2.5ms', ports: [80, 443, 8000, 9090], type: 'endpoint' },
+    { host: 'auth.service.v6', ip: '192.168.1.210', status: 'online', latency: '1.9ms', ports: [443, 6379], type: 'endpoint' },
+    { host: 'db.cluster.primary', ip: '192.168.2.10', status: 'online', latency: '3.1ms', ports: [5432, 3306], type: 'server' },
+    { host: 'legacy.archive.org', ip: '172.16.254.1', status: 'offline', latency: 'Timeout', ports: [], type: 'server' },
   ]);
   const [isScanning, setIsScanning] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState<TargetItem | null>(targets[0]);
@@ -169,6 +173,20 @@ export const NetScanApp: React.FC = () => {
                     <span className="text-red-400 font-mono">No open ports detected</span>
                   )}
                 </div>
+              </div>
+              
+              <div className="pt-2 border-t border-white/10 flex justify-end">
+                <button 
+                  onClick={() => {
+                    const data = JSON.stringify(selectedTarget, null, 2);
+                    (window as any).Kernel?.backpack.addItem('snippet', `Host: ${selectedTarget.host}`, data);
+                    setLogOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Saved host info to backpack.`]);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 border border-orange-500/30 flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Briefcase className="w-3.5 h-3.5" />
+                  <span>Save to Backpack</span>
+                </button>
               </div>
             </div>
           ) : (

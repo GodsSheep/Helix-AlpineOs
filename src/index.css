@@ -2,14 +2,14 @@
 
 @layer base {
   :root {
-    --bg: #07080b;
-    --panel-solid: #12141b;
-    --line: rgba(255, 255, 255, 0.08);
-    --text: #edf1f7;
+    --bg: #050608;
+    --panel-solid: #0d0f14;
+    --line: rgba(255, 255, 255, 0.05);
+    --text: #e2e8f0;
     --accent: #6ee7b7;
-    --muted: #8b93a7;
-    --danger: #ff6b7a;
-    --warn: #fbbf24;
+    --muted: #64748b;
+    --danger: #ef4444;
+    --warn: #eab308;
     --font-scale: 1.0;
     --ui-scale: 1.0;
     --sat: env(safe-area-inset-top, 0px);

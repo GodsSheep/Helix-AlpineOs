@@ -44,8 +44,13 @@ export interface HelixSettings {
   wallpaperPreset: string;
   wallpaperStyle: 'cover' | 'contain' | 'stretch' | 'tile';
   accentColorHex?: string;
-  dockPosition: 'bottom' | 'top';
+  dockPosition: 'bottom' | 'top' | 'left' | 'right';
   dockSize: 'compact' | 'normal' | 'large';
+  dockAutoHide: boolean;
+  dockIconSize: 'small' | 'medium' | 'large';
+  dockShowActiveIndicators: boolean;
+  dockMagnification: boolean;
+  dockShowRecentApps: boolean;
   enableBlur: boolean;
   enableAnimations: boolean;
   darkMode: boolean;
@@ -97,6 +102,40 @@ export interface HelixSettings {
 
   // Hardware & Sensors Sync
   syncHostHardwareMetrics: boolean;
+
+  // Top Bar & Menubar Customization
+  topbarShowOsBadge: boolean;
+  topbarShowShellButton: boolean;
+  topbarShowActivityButton: boolean;
+  topbarShowSettingsButton: boolean;
+  topbarShowZenButton: boolean;
+  topbarShowPwaInstall: boolean;
+  topbarShowBattery: boolean;
+  topbarShowWifi: boolean;
+  topbarShowQuickSettings: boolean;
+  topbarShowLinuxStatus: boolean;
+  topbarShowNotificationBell: boolean;
+  topbarShowClockSeconds: boolean;
+  topbarClockFormat: '12h' | '24h';
+
+  // VFS & Cache Persistence Settings
+  vfsQuotaMegabytes: number;
+  prioritizeVfsStorage: boolean;
+  biosIntegrityValidationOnBoot: boolean;
+  swAutoReloadOnCorruption: boolean;
+
+  // Trash & Recycle Bin Settings
+  trashAutoEmptyDays: number;
+  trashConfirmOnDelete: boolean;
+  trashPlaySoundOnEmpty: boolean;
+  trashMaxCapacityMb: number;
+
+  // Python Execution Engine
+  pythonExecutionEngine: 'kernel' | 'wasm' | 'hybrid';
+  pythonAutoImportNumpy: boolean;
+
+  // App Lifecycle & Uninstall Management
+  uninstalledAppIds: string[];
 
   // Desktop shortcuts
   desktopShortcuts: string[];
@@ -264,6 +303,11 @@ const DEFAULT_SETTINGS: HelixSettings = {
   accentColorHex: '#6ee7b7',
   dockPosition: 'bottom',
   dockSize: 'normal',
+  dockAutoHide: false,
+  dockIconSize: 'medium',
+  dockShowActiveIndicators: true,
+  dockMagnification: true,
+  dockShowRecentApps: true,
   enableBlur: true,
   enableAnimations: true,
   darkMode: true,
@@ -308,7 +352,37 @@ const DEFAULT_SETTINGS: HelixSettings = {
   soundEffectsEnabled: true,
 
   syncHostHardwareMetrics: true,
-  desktopShortcuts: ['term', 'files', 'rustcpp', 'pythonshowcase', 'settings', 'browser', 'paint'],
+
+  topbarShowOsBadge: true,
+  topbarShowShellButton: true,
+  topbarShowActivityButton: true,
+  topbarShowSettingsButton: true,
+  topbarShowZenButton: true,
+  topbarShowPwaInstall: true,
+  topbarShowBattery: true,
+  topbarShowWifi: true,
+  topbarShowQuickSettings: true,
+  topbarShowLinuxStatus: true,
+  topbarShowNotificationBell: true,
+  topbarShowClockSeconds: false,
+  topbarClockFormat: '12h',
+
+  vfsQuotaMegabytes: 512,
+  prioritizeVfsStorage: true,
+  biosIntegrityValidationOnBoot: true,
+  swAutoReloadOnCorruption: true,
+
+  trashAutoEmptyDays: 30,
+  trashConfirmOnDelete: true,
+  trashPlaySoundOnEmpty: true,
+  trashMaxCapacityMb: 256,
+
+  pythonExecutionEngine: 'kernel',
+  pythonAutoImportNumpy: true,
+
+  uninstalledAppIds: [],
+
+  desktopShortcuts: ['term', 'files', 'trash', 'pythonengine', 'crossplatform', 'betterbrowser', 'healthcheck', 'settings'],
 };
 
 export class SettingsService {

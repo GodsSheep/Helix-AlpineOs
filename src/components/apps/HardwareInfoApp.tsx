@@ -1,20 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Cpu, HardDrive, MemoryStick, CircuitBoard, Gauge, Layers, RefreshCw, Zap, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { Cpu, HardDrive, MemoryStick, CircuitBoard, Gauge, Layers, RefreshCw, Zap, PanelLeftClose, PanelLeft, Terminal } from 'lucide-react';
 import { Settings } from '../../kernel/Settings';
+import { Kernel } from '../../kernel';
 import { Toast } from '../../kernel/Toast';
 
 export const HardwareInfoApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'cpu' | 'memory' | 'pci' | 'storage' | 'sensors'>('cpu');
   const [hwInfo, setHwInfo] = useState(Settings.getHardwareInfo());
+  const [osMeta, setOsMeta] = useState(Kernel.vm.getOsMetadata());
   const [showSidebar, setShowSidebar] = useState(true);
 
   useEffect(() => {
     const unsub = Settings.subscribeHardware((info) => setHwInfo(info));
-    return unsub;
+    const unsubOs = Kernel.vm.onOsChange((_id, meta) => setOsMeta(meta));
+    return () => {
+      unsub();
+      unsubOs();
+    };
   }, []);
 
   const handleRefresh = () => {
     setHwInfo(Settings.getHardwareInfo());
+    setOsMeta(Kernel.vm.getOsMetadata());
     Toast.show('Rescanned hardware bus and device sensors', '✓');
   };
 
@@ -180,8 +187,12 @@ export const HardwareInfoApp: React.FC = () => {
                 <span className="text-white font-bold">{hwInfo.deviceMemoryGB} GB</span>
               </div>
               <div className="flex justify-between border-b border-white/5 pb-1">
-                <span className="text-gray-400">Alpine VM Allocation:</span>
-                <span className="text-emerald-400 font-bold">256 MB (Configurable)</span>
+                <span className="text-gray-400">{osMeta.name} VM Allocation:</span>
+                <span className="text-emerald-400 font-bold">{Kernel.vm.bootMemoryMB} MB (Configurable)</span>
+              </div>
+              <div className="flex justify-between border-b border-white/5 pb-1">
+                <span className="text-gray-400">BIOS Firmware ROM:</span>
+                <span className="text-cyan-300 font-semibold">{Kernel.vm.currentBiosName}</span>
               </div>
               <div className="flex justify-between border-b border-white/5 pb-1">
                 <span className="text-gray-400">Memory Type:</span>

@@ -13,6 +13,11 @@ import { Settings, SettingsService } from './Settings';
 import { GuiDisplayServer } from './GuiServer';
 import { SoundManager } from './SoundManager';
 import { NativeEngine } from './NativeEngine';
+import { BackpackService } from './Backpack';
+import { OSSaveManager } from './OSSaveManager';
+
+import { TrashManager } from './TrashManager';
+import { ThemeEngine } from './ThemeEngine';
 
 class HelixKernel {
   public state = new StateManager();
@@ -21,8 +26,12 @@ class HelixKernel {
   public journal = new ChangeJournal(this.logger);
   public cache = new CacheManager(this.logger);
   public settings = Settings;
+  public theme = ThemeEngine;
+  public trash = TrashManager;
   public sound = SoundManager;
   public native = NativeEngine;
+  public backpack = new BackpackService();
+  public saveManager = OSSaveManager;
   
   public vfs = new VirtualFileSystem();
   public config = new ConfigManager(this.vfs);
@@ -39,6 +48,7 @@ class HelixKernel {
     // Wire dependencies
     this.vfs.setJournal(this.journal);
     this.gui.setWindowManager(this.wm);
+    this.vm.setWindowManager(this.wm);
     
     await this.vfs.init();
     
@@ -63,6 +73,27 @@ class HelixKernel {
       this.logger.log('VM', 'info', 'Booting Alpine Linux Host Engine...');
       this.vm.start();
     }, 100);
+
+    // Start Reinforcement Health Monitor
+    this.startHealthMonitor();
+  }
+
+  private startHealthMonitor() {
+    setInterval(() => {
+      const stats = {
+        vfs: 'online',
+        vm: this.vm.getState(),
+        wm: this.wm.getWindows().length,
+        ts: Date.now()
+      };
+      this.state.update({ health: stats });
+      
+      // Auto-reconcile if VM is stuck (Reinforcement)
+      if (stats.vm === 'error') {
+        this.logger.log('REINFORCEMENT', 'warn', 'VM failure detected. Attempting hot reload...');
+        this.vm.start();
+      }
+    }, 5000);
   }
 }
 
@@ -78,3 +109,5 @@ export * from './Settings';
 export * from './NetworkService';
 export * from './SoundManager';
 export * from './NativeEngine';
+export * from './TrashManager';
+export * from './ThemeEngine';

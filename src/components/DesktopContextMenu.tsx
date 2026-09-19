@@ -46,11 +46,13 @@ import {
   CircuitBoard,
   GitCompare,
   Monitor,
+  ShieldCheck,
 } from 'lucide-react';
 import { Kernel } from '../kernel';
 import { Toast } from '../kernel/Toast';
 import { Settings } from '../kernel/Settings';
 import { SoundManager } from '../kernel/SoundManager';
+import { fetchAndValidateBiosRom, KNOWN_BIOS_SIGNATURES } from '../kernel/BiosValidator';
 
 interface ContextMenuProps {
   x: number;
@@ -190,10 +192,21 @@ export const DesktopContextMenu: React.FC<ContextMenuProps> = ({
 
         <button
           onClick={handleRemoveShortcut}
-          className="w-full px-2.5 py-1.5 rounded-lg hover:bg-red-500/15 text-red-400 hover:text-red-300 flex items-center gap-2.5 transition text-left cursor-pointer"
+          className="w-full px-2.5 py-1.5 rounded-lg hover:bg-amber-500/15 text-amber-300 flex items-center gap-2.5 transition text-left cursor-pointer"
         >
-          <Trash2 className="w-4 h-4 text-red-400" />
+          <Trash2 className="w-4 h-4 text-amber-400" />
           <span>Remove Desktop Shortcut</span>
+        </button>
+
+        <button
+          onClick={async () => {
+            await Kernel.trash.trash(`app:${appId}`);
+            onClose();
+          }}
+          className="w-full px-2.5 py-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 flex items-center gap-2.5 transition text-left cursor-pointer font-medium"
+        >
+          <Trash2 className="w-4 h-4 text-rose-500" />
+          <span>Uninstall & Move to Trash</span>
         </button>
 
         <button
@@ -256,6 +269,21 @@ export const DesktopContextMenu: React.FC<ContextMenuProps> = ({
       Toast.show(`Directory created: ${name}`, '📁');
       onOpenApp('files');
     }
+    onClose();
+  };
+
+  const handleRunBiosAudit = async () => {
+    SoundManager.play('open');
+    Toast.show('Executing SHA-256 BIOS ROM Integrity Audit...', '🛡️');
+    const urls = Object.keys(KNOWN_BIOS_SIGNATURES);
+    let validCount = 0;
+    for (const u of urls) {
+      const res = await fetchAndValidateBiosRom(u);
+      if (res.validation.isValid) validCount++;
+    }
+    SoundManager.play('success');
+    Toast.show(`BIOS Audit Complete: ${validCount}/${urls.length} Firmware ROM Hashes Verified`, '✅');
+    onOpenApp('settings', { tab: 'cache' });
     onClose();
   };
 
@@ -1161,6 +1189,14 @@ export const DesktopContextMenu: React.FC<ContextMenuProps> = ({
       >
         <LayoutGrid className="w-4 h-4 text-emerald-400" />
         <span>Add Desktop Shortcut...</span>
+      </button>
+
+      <button
+        onClick={handleRunBiosAudit}
+        className="w-full px-2.5 py-1.5 rounded-lg hover:bg-[#6ee7b7]/15 hover:text-[#6ee7b7] flex items-center gap-2.5 transition text-left cursor-pointer text-gray-300 font-semibold"
+      >
+        <ShieldCheck className="w-4 h-4 text-[#6ee7b7]" />
+        <span>BIOS Integrity Audit (SHA-256)</span>
       </button>
 
       <div className="my-1 border-t border-white/10" />

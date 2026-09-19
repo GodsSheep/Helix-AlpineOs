@@ -148,7 +148,7 @@ export const WebBrowserApp: React.FC = () => {
           setWikiSearchResults(data.query?.search || []);
         }
       } catch (err: any) {
-        console.error(err);
+        console.warn('WebBrowser request failed:', err?.message || err);
         setFetchError(err?.message || 'Network unreachable');
       } finally {
         // Subtle loading timeout for UX feeling
