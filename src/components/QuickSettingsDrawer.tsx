@@ -25,6 +25,7 @@ import {
 import { Settings, HelixSettings } from '../kernel/Settings';
 import { Kernel } from '../kernel';
 import { SoundManager } from '../kernel/SoundManager';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface QuickSettingsDrawerProps {
   isOpen: boolean;
@@ -334,23 +335,28 @@ export const QuickSettingsDrawer: React.FC<QuickSettingsDrawerProps> = ({
 
         {/* Drawer Footer Actions */}
         <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px]">
-          <button
-            onClick={() => {
-              onClose();
-              onOpenSettings();
-            }}
-            className="text-[#6ee7b7] hover:text-[#5cd4a5] font-semibold flex items-center gap-1.5 transition cursor-pointer"
-          >
-            <SettingsIcon className="w-3.5 h-3.5" />
-            <span>Full System Settings...</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                onClose();
+                onOpenSettings();
+              }}
+              className="text-[#6ee7b7] hover:text-[#5cd4a5] font-semibold flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <SettingsIcon className="w-3.5 h-3.5" />
+              <span>Full System Settings...</span>
+            </button>
+          </div>
 
-          <button
-            onClick={onClose}
-            className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-gray-300 transition cursor-pointer"
-          >
-            Done
-          </button>
+          <div className="flex items-center gap-2">
+            <PWAInstallButton compact={true} />
+            <button
+              onClick={onClose}
+              className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-gray-300 transition cursor-pointer"
+            >
+              Done
+            </button>
+          </div>
         </div>
 
         {/* Dismiss Drag Handle Bar */}

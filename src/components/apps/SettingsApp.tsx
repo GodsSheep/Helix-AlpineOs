@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Kernel } from '../../kernel';
 import { SoundManager } from '../../kernel/SoundManager';
+import { TarGzArchiveEngine } from '../../kernel/TarGzArchive';
 import { Network, WifiNetworkProfile, NetworkInterfaceInfo } from '../../kernel/NetworkService';
 import { 
   Settings as SettingsService, 
@@ -214,6 +215,45 @@ export const SettingsApp: React.FC = () => {
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleExportTarGz = async () => {
+    SoundManager.play('click');
+    notify('Packaging entire workspace, settings, and VFS files into .tar.gz archive...');
+    try {
+      const blob = await TarGzArchiveEngine.exportWorkspaceTarGz();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `helix_workspace_archive_${Date.now()}.tar.gz`;
+      a.click();
+      URL.revokeObjectURL(url);
+      notify('Workspace .tar.gz archive exported successfully!');
+    } catch (err: any) {
+      notify(`Export error: ${err?.message || err}`);
+    }
+  };
+
+  const handleImportTarGz = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    SoundManager.play('open');
+    notify('Extracting .tar.gz workspace archive...');
+    try {
+      const res = await TarGzArchiveEngine.importWorkspaceTarGz(file);
+      if (res.success) {
+        SoundManager.play('success');
+        notify(res.message);
+      } else {
+        SoundManager.play('error');
+        notify(res.message);
+      }
+    } catch (err: any) {
+      SoundManager.play('error');
+      notify(`Import error: ${err?.message || err}`);
+    } finally {
+      e.target.value = '';
+    }
   };
 
   const handleFactoryReset = async () => {
@@ -506,6 +546,19 @@ export const SettingsApp: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 pt-2 border-t border-white/10">
+                  <label className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 cursor-pointer">
+                    <div>
+                      <div className="font-semibold text-white">High-Contrast Dark Theme</div>
+                      <div className="text-[10px] text-gray-400">Enforces sharp high-contrast dark palette and vivid accents across all UI elements</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.highContrast ?? false}
+                      onChange={(e) => handleUpdate({ highContrast: e.target.checked })}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer"
+                    />
+                  </label>
+
                   <label className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 cursor-pointer">
                     <div>
                       <div className="font-semibold text-white">Glassmorphism & Background Blur</div>
@@ -2059,13 +2112,33 @@ export const SettingsApp: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                   <button
+                    onClick={handleExportTarGz}
+                    className="p-3.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 flex items-center gap-3 transition text-left cursor-pointer"
+                  >
+                    <Download className="w-5 h-5 text-purple-400 shrink-0" />
+                    <div>
+                      <div className="font-bold text-xs text-white">Export Workspace (.tar.gz)</div>
+                      <div className="text-[10px] text-gray-400">Complete archive of settings, state & VFS files</div>
+                    </div>
+                  </button>
+
+                  <label className="p-3.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 flex items-center gap-3 transition text-left cursor-pointer">
+                    <Upload className="w-5 h-5 text-purple-300 shrink-0" />
+                    <div>
+                      <div className="font-bold text-xs text-white">Import Workspace (.tar.gz)</div>
+                      <div className="text-[10px] text-gray-400">Extract & restore complete state and VFS files</div>
+                    </div>
+                    <input type="file" accept=".tar.gz,.tgz,.tar" onChange={handleImportTarGz} className="hidden" />
+                  </label>
+
+                  <button
                     onClick={handleExportBackup}
                     className="p-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-3 transition text-left cursor-pointer"
                   >
                     <Download className="w-5 h-5 text-[#6ee7b7] shrink-0" />
                     <div>
                       <div className="font-bold text-xs text-white">Export Backup JSON</div>
-                      <div className="text-[10px] text-gray-400">Download snapshot of all settings & hardware state</div>
+                      <div className="text-[10px] text-gray-400">Download snapshot of settings & state</div>
                     </div>
                   </button>
 
@@ -2073,7 +2146,7 @@ export const SettingsApp: React.FC = () => {
                     <Upload className="w-5 h-5 text-blue-400 shrink-0" />
                     <div>
                       <div className="font-bold text-xs text-white">Restore from JSON</div>
-                      <div className="text-[10px] text-gray-400">Load previously exported Helix state</div>
+                      <div className="text-[10px] text-gray-400">Load previously exported Helix JSON</div>
                     </div>
                     <input type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
                   </label>

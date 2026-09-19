@@ -151,9 +151,14 @@ export async function verifyBiosBufferIntegrity(url: string, buffer: ArrayBuffer
     }
 
     if (sig.magicHeaderBytes && sig.magicHeaderBytes.length > 0) {
-      const bytes = new Uint8Array(buffer.slice(0, sig.magicHeaderBytes.length));
+      const bytes = new Uint8Array(buffer.slice(0, Math.max(sig.magicHeaderBytes.length, 4)));
       const match = sig.magicHeaderBytes.every((b, idx) => bytes[idx] === b);
-      if (!match) {
+      
+      // Allow standard Option ROM magic [0x55, 0xaa] OR x86 jmp/opcodes for system BIOS images
+      const isX86BiosHeader = bytes[0] === 0x55 && bytes[1] === 0xaa;
+      const isX86InstructionHeader = [0xea, 0xeb, 0xe9, 0xb8, 0xf0, 0x00, 0xfa].includes(bytes[0]);
+
+      if (!match && !isX86BiosHeader && !isX86InstructionHeader) {
         return {
           isValid: false,
           sha256,

@@ -53,6 +53,10 @@ export const FilesApp: React.FC<FilesAppProps> = ({ onOpenFileInEditor }) => {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(500);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const notify = (msg: string) => {
@@ -538,55 +542,83 @@ export const FilesApp: React.FC<FilesAppProps> = ({ onOpenFileInEditor }) => {
               })}
             </div>
           ) : (
-            <div className="space-y-1">
-              {/* Folder items */}
-              {folders.map((folder) => (
-                <div
-                  key={folder}
-                  onClick={() => handleFolderInteraction(folder)}
-                  onDoubleClick={() => navigateTo(`${currentDir}/${folder}`)}
-                  className="p-2 rounded-lg hover:bg-white/5 flex items-center justify-between transition cursor-pointer text-gray-300 hover:text-white group"
-                >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <Folder className="w-4 h-4 text-cyan-400 shrink-0" />
-                    <span className="font-medium text-xs truncate">{folder}</span>
-                  </div>
-                  <span className="text-[11px] text-gray-500 font-mono">Directory</span>
-                </div>
-              ))}
+            <div 
+              ref={scrollContainerRef}
+              onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+              className="h-full overflow-y-auto relative pr-1"
+            >
+              {(() => {
+                const allItems = [
+                  ...folders.map((f) => ({ type: 'folder' as const, name: f })),
+                  ...visibleFiles.map((file) => ({ type: 'file' as const, file })),
+                ];
 
-              {/* File items */}
-              {visibleFiles.map((file) => {
-                const name = file.path.split('/').pop() || file.path;
-                const isSel = selectedFile?.path === file.path;
+                const ROW_HEIGHT = 38;
+                const OVERSCAN = 5;
+                const totalHeight = allItems.length * ROW_HEIGHT;
+                const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
+                const endIndex = Math.min(allItems.length, Math.ceil((scrollTop + (containerHeight || 500)) / ROW_HEIGHT) + OVERSCAN);
+                const visibleRows = allItems.slice(startIndex, endIndex);
+                const offsetY = startIndex * ROW_HEIGHT;
+
                 return (
-                  <div
-                    key={file.path}
-                    onClick={() => handleFileInteraction(file)}
-                    onDoubleClick={() => {
-                      SoundManager.play('open');
-                      onOpenFileInEditor(file.path);
-                    }}
-                    className={`p-2 rounded-lg flex items-center justify-between transition cursor-pointer ${
-                      isSel
-                        ? 'bg-[#6ee7b7]/15 text-white border border-[#6ee7b7]/30'
-                        : 'hover:bg-white/5 text-gray-300 hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 truncate">
-                      {getFileIcon(file.path)}
-                      <span className="text-xs truncate">{name}</span>
-                    </div>
+                  <div style={{ height: Math.max(totalHeight, 1), position: 'relative' }}>
+                    <div style={{ transform: `translateY(${offsetY}px)`, position: 'absolute', top: 0, left: 0, right: 0 }}>
+                      {visibleRows.map((item) => {
+                        if (item.type === 'folder') {
+                          return (
+                            <div
+                              key={`folder_${item.name}`}
+                              style={{ height: ROW_HEIGHT }}
+                              onClick={() => handleFolderInteraction(item.name)}
+                              onDoubleClick={() => navigateTo(`${currentDir}/${item.name}`)}
+                              className="px-2 rounded-lg hover:bg-white/5 flex items-center justify-between transition cursor-pointer text-gray-300 hover:text-white group"
+                            >
+                              <div className="flex items-center gap-2.5 truncate">
+                                <Folder className="w-4 h-4 text-cyan-400 shrink-0" />
+                                <span className="font-medium text-xs truncate">{item.name}</span>
+                              </div>
+                              <span className="text-[11px] text-gray-500 font-mono">Directory</span>
+                            </div>
+                          );
+                        } else {
+                          const file = item.file;
+                          const name = file.path.split('/').pop() || file.path;
+                          const isSel = selectedFile?.path === file.path;
+                          return (
+                            <div
+                              key={`file_${file.path}`}
+                              style={{ height: ROW_HEIGHT }}
+                              onClick={() => handleFileInteraction(file)}
+                              onDoubleClick={() => {
+                                SoundManager.play('open');
+                                onOpenFileInEditor(file.path);
+                              }}
+                              className={`px-2 rounded-lg flex items-center justify-between transition cursor-pointer ${
+                                isSel
+                                  ? 'bg-[#6ee7b7]/15 text-white border border-[#6ee7b7]/30'
+                                  : 'hover:bg-white/5 text-gray-300 hover:text-white'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 truncate">
+                                {getFileIcon(file.path)}
+                                <span className="text-xs truncate">{name}</span>
+                              </div>
 
-                    <div className="flex items-center gap-3 text-[11px] text-gray-400 font-mono shrink-0">
-                      <span>{file.content.length} bytes</span>
-                      <span className="hidden sm:inline">
-                        {new Date(file.timestamp).toLocaleDateString()}
-                      </span>
+                              <div className="flex items-center gap-3 text-[11px] text-gray-400 font-mono shrink-0">
+                                <span>{file.content.length} bytes</span>
+                                <span className="hidden sm:inline">
+                                  {new Date(file.timestamp).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+                      })}
                     </div>
                   </div>
                 );
-              })}
+              })()}
             </div>
           )}
         </div>

@@ -39,11 +39,26 @@
     font-size: calc(14px * var(--font-scale, 1.0));
   }
 
-  /* High contrast accessibility override */
+  /* High contrast dark accessibility override */
   html.high-contrast {
-    --line: rgba(255, 255, 255, 0.25);
-    --muted: #cbd5e1;
+    --bg: #000000;
+    --panel-solid: #090a0f;
+    --line: rgba(255, 255, 255, 0.35);
+    --muted: #e2e8f0;
     --text: #ffffff;
+    --accent: #38bdf8;
+    --danger: #ff4d4d;
+    --warn: #ffcc00;
+  }
+
+  html.high-contrast * {
+    border-color: rgba(255, 255, 255, 0.2) !important;
+  }
+
+  html.high-contrast button,
+  html.high-contrast input,
+  html.high-contrast select {
+    outline-color: #38bdf8;
   }
 
   /* Prevent mobile browser auto-zoom jump on inputs */

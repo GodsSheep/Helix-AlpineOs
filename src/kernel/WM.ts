@@ -480,7 +480,25 @@ export class WindowManager {
     return () => { this.listeners.delete(cb); };
   }
 
+  private rafId: number | null = null;
+
   private notify() {
+    if (typeof window === 'undefined') {
+      this.listeners.forEach(cb => cb(this.windows));
+      return;
+    }
+    if (this.rafId !== null) return;
+    this.rafId = requestAnimationFrame(() => {
+      this.rafId = null;
+      this.listeners.forEach(cb => cb(this.windows));
+    });
+  }
+
+  public notifyImmediate() {
+    if (this.rafId !== null) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
     this.listeners.forEach(cb => cb(this.windows));
   }
 }

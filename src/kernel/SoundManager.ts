@@ -34,7 +34,7 @@ class SoundEngine {
         this.ctx = new AudioCtx();
       }
     }
-    if (this.ctx && this.ctx.state === 'suspended') {
+    if (this.ctx && this.ctx.state === 'suspended' && this.isUnlocked) {
       this.ctx.resume().catch(() => {});
     }
     return this.ctx;
