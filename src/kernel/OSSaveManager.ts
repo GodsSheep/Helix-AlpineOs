@@ -4,6 +4,7 @@
 import { VirtualFileSystem } from './VFS';
 import { Settings } from './Settings';
 import { Toast } from './Toast';
+import { HostKernelBridge } from './HostKernelBridge';
 
 export interface OSSaveBundle {
   magic: string; // 'HELIX_OS_SAVE_V1'
@@ -18,8 +19,107 @@ export interface OSSaveBundle {
   history: string[];
 }
 
+export interface SafeStateSnapshot {
+  id: string;
+  osProfile: string;
+  osName: string;
+  timestamp: number;
+  triggerReason: string;
+  ramPressurePercent: number;
+  ramUsedMB: number;
+  sizeMB: number;
+  vfsFileCount: number;
+  bundle: OSSaveBundle;
+}
+
 export class OSSaveManager {
   private static STORAGE_KEY_PREFIX = 'helix_os_save_data_';
+  private static SNAPSHOTS_KEY_PREFIX = 'helix_safe_snapshots_';
+
+  /**
+   * Safe-State Snapshot Engine Methods
+   */
+  public static async createSafeStateSnapshot(
+    vfs: VirtualFileSystem,
+    osProfile: string,
+    osName: string,
+    ramPressurePercent: number,
+    ramUsedMB: number,
+    triggerReason: string,
+    installedPkgs: string[] = [],
+    history: string[] = []
+  ): Promise<SafeStateSnapshot> {
+    const bundle = await this.createSaveBundle(vfs, osProfile, osName, installedPkgs, history);
+    const id = `snap-${osProfile}-${Date.now()}`;
+    const bundleJson = JSON.stringify(bundle);
+    const sizeMB = Math.round((bundleJson.length / (1024 * 1024)) * 100) / 100 || 0.1;
+
+    const snapshot: SafeStateSnapshot = {
+      id,
+      osProfile,
+      osName,
+      timestamp: Date.now(),
+      triggerReason,
+      ramPressurePercent,
+      ramUsedMB,
+      sizeMB,
+      vfsFileCount: bundle.vfsFiles.length,
+      bundle,
+    };
+
+    // Save to local storage list
+    try {
+      const existing = this.getSafeStateSnapshots(osProfile);
+      // Keep last 10 snapshots max
+      const updated = [snapshot, ...existing].slice(0, 10);
+      localStorage.setItem(`${this.SNAPSHOTS_KEY_PREFIX}${osProfile}`, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('[OSSaveManager] Safe snapshot storage warning:', e);
+    }
+
+    return snapshot;
+  }
+
+  public static getSafeStateSnapshots(osProfile: string): SafeStateSnapshot[] {
+    try {
+      const raw = localStorage.getItem(`${this.SNAPSHOTS_KEY_PREFIX}${osProfile}`);
+      if (!raw) return [];
+      return JSON.parse(raw) as SafeStateSnapshot[];
+    } catch {
+      return [];
+    }
+  }
+
+  public static async restoreSafeStateSnapshot(
+    vfs: VirtualFileSystem,
+    snapshotId: string,
+    osProfile: string
+  ): Promise<boolean> {
+    const snapshots = this.getSafeStateSnapshots(osProfile);
+    const target = snapshots.find((s) => s.id === snapshotId);
+    if (!target) {
+      Toast.show('Safe-State snapshot checkpoint not found', '❌');
+      return false;
+    }
+
+    const success = await this.loadOsState(vfs, target.bundle);
+    if (success) {
+      Toast.show(`RAM Checkpoint Restored: ${target.triggerReason} (${target.ramPressurePercent.toFixed(1)}% RAM state)`, '🛡️');
+    }
+    return success;
+  }
+
+  public static deleteSafeStateSnapshot(snapshotId: string, osProfile: string): boolean {
+    try {
+      const snapshots = this.getSafeStateSnapshots(osProfile);
+      const filtered = snapshots.filter((s) => s.id !== snapshotId);
+      localStorage.setItem(`${this.SNAPSHOTS_KEY_PREFIX}${osProfile}`, JSON.stringify(filtered));
+      Toast.show('Safe-State checkpoint deleted', '🗑️');
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   /**
    * Generates a simple SHA-256 / Adler-style integrity checksum for data string
@@ -109,7 +209,11 @@ export class OSSaveManager {
       const bundle = await this.createSaveBundle(vfs, osProfile, osName, installedPkgs, history);
       const jsonStr = JSON.stringify(bundle);
       localStorage.setItem(`${this.STORAGE_KEY_PREFIX}${osProfile}`, jsonStr);
-      Toast.show(`Saved ${osName} OS state (${bundle.vfsFiles.length} files verified)`, '💾');
+
+      // Auto sync to Host Kernel persistent storage
+      HostKernelBridge.syncUserData(osProfile, vfs, history).catch(() => {});
+
+      Toast.show(`Saved ${osName} OS state (${bundle.vfsFiles.length} files synced to host & storage)`, '💾');
       return true;
     } catch (err) {
       console.error('[OSSaveManager] Save failed:', err);

@@ -1,30 +1,32 @@
 # Progress Status & Changelog
 
-## System Hardening & Multi-OS Ecosystem Integration
+## System Stabilization, Boot Failure Fixes, and Error Recovery
 
-### Completed Tasks
-1. **Multi-OS Boot Hub & Universal BIOS Suite**
-   - Configured all 11 OS Distributions (Alpine, Kali, Debian, Ubuntu, Arch, Fedora, Void, Tiny Core, RT-MicroKernel, FreeDOS, KolibriOS).
-   - Configured 7 BIOS & VGA Firmware ROMs (SeaBIOS 1.16.3, SeaBIOS ACPI 2.0 PAE, Enterprise CSM, RT-Preempt, PC-AT, Cirrus, SVGA VESA).
-   - Implemented dynamic parameter tuning for RAM (64MB–1024MB), VRAM (8MB–32MB), ACPI/APIC toggles, and kernel command line presets.
+### 1. Root Error Boundary & Blank Screen Elimination
+- Wrapped `<App />` with `<RootErrorBoundary>` at the application entry point (`src/main.tsx`), preventing any top-level React initialization exceptions from blanking the screen.
+- Enhanced `RootErrorBoundary` in `src/components/ErrorBoundary.tsx` with an in-UI interactive two-step confirmation for "Factory Reset", replacing `window.confirm` which is blocked by sandboxed iframe security policies.
+- Added a "Quick Self-Repair & Clean Reboot" action to sanitize corrupt JSON states and restore system baseline without requiring a complete storage wipe.
 
-2. **Smart Multi-Boot Assistant**
-   - Built hardware detection engine (`navigator.hardwareConcurrency`, `navigator.deviceMemory`).
-   - Added auto-optimizer for 1-click resource allocation and BIOS pairing.
-   - Built troubleshooting matrix and architecture guide.
-   - Registered app as `bootassist` and added as 4th tab in Multi-OS Boot Hub.
+### 2. Full Safe Mode Subsystem Implementation
+- Implemented early storage sanitization in `src/main.tsx` checking `helix_safe_mode`.
+- Configured `Kernel.init()` to skip automated heavy microVM startup when Safe Mode is active, preventing boot loops.
+- Configured `BootScreen.tsx` to instantly bypass the boot sequence in Safe Mode.
+- Added a desktop status bar banner (`HELIX SAFE MODE ACTIVE`) in `src/App.tsx` with a one-click "Exit Safe Mode & Normal Reboot" button.
 
-3. **System-wide Reactive OS State**
-   - Added `onOsChange` and `notifyOsChange` in `VM.ts`.
-   - Updated Menubar with active OS badge and 1-click launcher.
-   - Updated Terminal with dynamic prompt, OS badge, and custom `neofetch` logos for all 11 distros.
-   - Updated Hardware Info App with dynamic VM memory allocation and active BIOS ROM name.
+### 3. VFS Fail-Safe & In-Memory Fallback
+- Updated `VirtualFileSystem.init()` with a 2500ms timeout, `onblocked` handling, and seamless in-memory VFS fallback if IndexedDB is blocked, locked, or restricted in sandboxed or private browsing environments.
 
-4. **PWA & Offline-First Strategy**
-   - Workbox service worker caching for ROMs, ISOs, and WASM binaries.
-   - Low-memory device optimizations with CacheFirst and StaleWhileRevalidate strategies.
-   - IndexedDB atomic virtual filesystem persistence.
+### 4. VM Lifecycle & System Halted Overlay Synchronization
+- Fixed `unsubVM` in `src/App.tsx` to automatically clear `isSystemHalted` when the VM transitions to `'ready'` or `'booting'`.
+- Fixed the "Power On / Boot OS" button in the halted screen to directly re-arm the VM without unmounting the desktop or re-triggering the boot screen.
 
-5. **Verification & Stability**
-   - `lint_applet` (`tsc --noEmit`): PASSED (0 errors).
-   - `compile_applet` (`vite build`): PASSED (Production build ready).
+### 5. BootScreen Resilience & Skip Controls
+- Added an instant "Click to Skip Boot" button and keyboard shortcut (Space/Enter/Escape) in `BootScreen.tsx`.
+- Added an absolute 1800ms fail-safe timeout ensuring `onBootComplete()` executes even if audio or timer callbacks are delayed.
+
+### 6. Development Service Worker Cleanup
+- Disabled `devOptions` in VitePWA (`vite.config.ts`) and configured `main.tsx` to unregister stale development service workers, resolving 503 errors and module loading failures.
+
+### 7. Verification & Quality Assurance
+- **Linter (`tsc --noEmit`)**: Clean (0 errors, 0 warnings).
+- **Vite Build (`npm run build`)**: Succeeded (client bundle + `dist/server.cjs`).

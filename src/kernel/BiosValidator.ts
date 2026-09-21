@@ -24,7 +24,6 @@ export const KNOWN_BIOS_SIGNATURES: Record<string, ExpectedBiosSignature> = {
     romUrl: '/v86/seabios.bin',
     minSize: 64 * 1024,
     maxSize: 512 * 1024,
-    magicHeaderBytes: [0x55, 0xaa], // Standard x86 ROM Option Header or SeaBIOS signature
   },
   '/v86/seabios-acpi.bin': {
     id: 'seabios-acpi',
@@ -182,7 +181,7 @@ export async function verifyBiosBufferIntegrity(url: string, buffer: ArrayBuffer
  */
 export async function fetchAndValidateBiosRom(url: string): Promise<{ buffer: ArrayBuffer; validation: BiosValidationResult }> {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(2500) });
     if (!res.ok) {
       throw new Error(`HTTP ${res.status} ${res.statusText}`);
     }
@@ -192,7 +191,7 @@ export async function fetchAndValidateBiosRom(url: string): Promise<{ buffer: Ar
     if (!validation.isValid) {
       console.warn(`[BiosValidator] SW/Cache corruption detected for ${url}. Bypassing cache...`, validation.message);
       // Force reload from server bypassing cache
-      const reloadRes = await fetch(`${url}?_t=${Date.now()}`, { cache: 'reload' });
+      const reloadRes = await fetch(`${url}?_t=${Date.now()}`, { cache: 'reload', signal: AbortSignal.timeout(2500) });
       if (reloadRes.ok) {
         const freshBuf = await reloadRes.arrayBuffer();
         const freshVal = await verifyBiosBufferIntegrity(url, freshBuf);

@@ -27,9 +27,15 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
-  // Bypass service worker entirely for v86 assets and any Range-header requests.
-  // This prevents Range requests from failing or being incorrectly cached with status 0 or type mismatch.
-  if (url.pathname.includes('/v86/') || event.request.headers.has('range')) {
+  // Bypass service worker entirely for API requests, Vite dev modules, v86 assets, and Range-header requests.
+  if (
+    url.pathname.startsWith('/api') ||
+    url.pathname.startsWith('/@') ||
+    url.pathname.includes('vite') ||
+    url.pathname.includes('/v86/') ||
+    event.request.headers.has('range') ||
+    (url.protocol !== 'http:' && url.protocol !== 'https:')
+  ) {
     return;
   }
   

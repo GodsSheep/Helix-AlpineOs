@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Kernel } from '../../kernel';
 import { SoundManager } from '../../kernel/SoundManager';
 import { RealHostTerminalClient } from '../../kernel/RealHostTerminal';
+import { HostKernelBridge } from '../../kernel/HostKernelBridge';
 import { TerminalThemeEngine, TerminalTheme, TERMINAL_THEMES } from '../../kernel/TerminalThemes';
 import { Toast } from '../../kernel/Toast';
 import { 
@@ -17,7 +18,8 @@ import {
   Loader2, 
   X,
   CheckCircle2,
-  Cpu
+  Cpu,
+  Shield
 } from 'lucide-react';
 
 interface HistoryItem {
@@ -37,6 +39,7 @@ export const TerminalApp: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [isRealConnected, setIsRealConnected] = useState(true);
+  const [activeChroot, setActiveChroot] = useState(Kernel.vm.getActiveChroot());
   const [theme, setTheme] = useState<TerminalTheme>(TerminalThemeEngine.getActiveTheme());
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
 
@@ -97,6 +100,14 @@ export const TerminalApp: React.FC = () => {
       setCwd(Kernel.vm.getCwd());
     });
 
+    const unsubChroot = Kernel.vm.onChrootChange((jail: any) => {
+      setActiveChroot(jail);
+      setCwd(Kernel.vm.getCwd());
+      setHostname(Kernel.vm.getHostname());
+      setCurrentUser(Kernel.vm.getCurrentUser());
+      setIsRoot(Kernel.vm.isRoot());
+    });
+
     RealHostTerminalClient.checkBackend().then((ok) => {
       setIsRealConnected(ok);
     });
@@ -104,6 +115,7 @@ export const TerminalApp: React.FC = () => {
     return () => {
       unsubUser();
       unsubOs();
+      unsubChroot();
     };
   }, [isRoot]);
 
@@ -144,7 +156,7 @@ export const TerminalApp: React.FC = () => {
     return () => window.removeEventListener('mousedown', handleClickOutside);
   }, [isThemeMenuOpen]);
 
-  const handleRunCommand = async (commandToRun: string) => {
+    const handleRunCommand = async (commandToRun: string) => {
     const command = commandToRun.trim();
     if (!command || isRunning) return;
 
@@ -209,34 +221,46 @@ export const TerminalApp: React.FC = () => {
       return;
     }
 
+    // Auto-package helper: automatically update before install
+    let commandToExecute = command;
+    const trimCmd = command.trim();
+    if (trimCmd.startsWith('apk add ')) {
+      commandToExecute = 'apk update && ' + trimCmd;
+    } else if (trimCmd.startsWith('apt install ') || trimCmd.startsWith('apt-get install ')) {
+      commandToExecute = 'apt-get update && ' + trimCmd;
+    } else if (trimCmd.startsWith('pacman -S ')) {
+      commandToExecute = 'pacman -Sy && ' + trimCmd;
+    } else if (trimCmd.startsWith('dnf install ') || trimCmd.startsWith('yum install ')) {
+      commandToExecute = 'dnf check-update && ' + trimCmd;
+    }
+
     setIsRunning(true);
-
+    
     try {
-      const output = await Kernel.vm.executeCommand(command);
-      setCwd(Kernel.vm.getCwd());
-      setCurrentUser(Kernel.vm.getCurrentUser());
-      setIsRoot(Kernel.vm.isRoot());
+      // 1. Sync VFS -> Host Backend (if online)
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        await HostKernelBridge.pushVfsToHost(Kernel.vfs).catch(() => {});
+      }
 
+      // 2. Execute command via Kernel.vm microVM execution engine
+      const output = await Kernel.vm.executeCommand(commandToExecute);
       if (output) {
-        const isError = output.startsWith('Error:') || output.includes('command not found') || output.includes('No such file') || output.includes('can\'t');
-        if (isError) {
-          SoundManager.play('error');
-        } else {
-          SoundManager.play('click');
-        }
-
         setHistory((prev) => [
           ...prev,
-          {
-            id: Math.random().toString(),
-            type: isError ? 'err' : 'out',
-            text: output.endsWith('\n') ? output : output + '\n',
-          },
+          { id: Math.random().toString(), type: 'out', text: output.endsWith('\n') ? output : output + '\n' },
         ]);
       }
+      setCwd(Kernel.vm.getCwd());
+
+      // 3. Sync Host Backend -> VFS (if online)
+      const vfsFiles = await Kernel.vfs.list();
+      const vfsPaths = vfsFiles.map(f => f.path.replace(/^\//, '')).filter(Boolean);
+      if (typeof navigator !== 'undefined' && navigator.onLine && vfsPaths.length > 0) {
+        await HostKernelBridge.pullHostToVfs(Kernel.vfs, vfsPaths).catch(() => {});
+      }
+      
     } catch (err: unknown) {
       SoundManager.play('error');
-      setCwd(Kernel.vm.getCwd());
       setHistory((prev) => [
         ...prev,
         { id: Math.random().toString(), type: 'err', text: `Error: ${(err as Error).message}\n` },
@@ -276,11 +300,13 @@ export const TerminalApp: React.FC = () => {
         if (!trimmed) return;
         const commonCmds = [
           'help', 'cd', 'ls', 'cat', 'pwd', 'whoami', 'id', 'su', 'sudo', 'groups', 'users', 'who', 'w',
-          'hostname', 'date', 'uptime', 'neofetch', 'htop', 'top', 'free', 'df', 'ps', 'apk', 'apt', 'pacman',
-          'python3', 'node', 'gcc', 'git', 'clear', 'mkdir', 'touch', 'rm', 'cp', 'mv', 'sh', 'bash',
+          'hostname', 'date', 'uptime', 'neofetch', 'htop', 'top', 'free', 'df', 'ps', 
+          'apk', 'apt', 'apt-get', 'pacman', 'dnf', 'yum', 'zypper',
+          'python3', 'node', 'gcc', 'git', 'clear', 'mkdir', 'touch', 'rm', 'cp', 'mv', 'sh', 'bash', 'zsh',
           'reboot', 'halt', 'tree', 'grep', 'wc', 'head', 'tail', 'find', 'diff', 'curl', 'wget', 'ping',
           'ifconfig', 'ip', 'dmesg', 'rc-status', 'cal', 'cmatrix', 'figlet', 'alias', 'history',
-          'theme', 'colorscheme', 'sort', 'uniq', 'cut', 'tr', 'sed', 'awk', 'base64', 'md5sum', 'sha256sum', 'lsblk', 'fdisk'
+          'theme', 'colorscheme', 'sort', 'uniq', 'cut', 'tr', 'sed', 'awk', 'base64', 'md5sum', 'sha256sum', 'lsblk', 'fdisk',
+          'vi', 'vim', 'nano', 'emacs', 'tar', 'gzip', 'bzip2', 'zip', 'unzip', 'ssh', 'scp', 'rsync', 'systemctl', 'journalctl'
         ];
         const match = commonCmds.find(c => c.startsWith(trimmed));
         if (match) {
@@ -354,6 +380,9 @@ export const TerminalApp: React.FC = () => {
   };
 
   const quickCommands = [
+    'chroot --help',
+    'chroot --list',
+    'chroot --status',
     'uname -a',
     'whoami',
     'uptime',
@@ -405,6 +434,27 @@ export const TerminalApp: React.FC = () => {
               </span>
             )}
           </div>
+
+          {activeChroot ? (
+            <button
+              onClick={() => Kernel.wm.launch('chroot')}
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded border border-amber-500/40 bg-amber-500/20 text-amber-300 text-[11px] font-bold hover:bg-amber-500/30 transition cursor-pointer"
+              title={`Inside Chroot Jail: ${activeChroot.name} (${activeChroot.rootPath}). Click to open Chroot Studio.`}
+            >
+              <Shield className="w-3 h-3 text-amber-400" />
+              <span>JAIL: {activeChroot.name.split(' ')[0]}</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => Kernel.wm.launch('chroot')}
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-white/10 hover:border-amber-500/40 hover:bg-amber-500/10 text-gray-400 hover:text-amber-300 text-[10px] font-medium transition cursor-pointer"
+              title="Open Chroot Sandbox Studio"
+            >
+              <Shield className="w-3 h-3 text-amber-400" />
+              <span className="hidden sm:inline">Chroot</span>
+            </button>
+          )}
+
           <span className="text-white/20 text-xs hidden sm:inline">|</span>
           <span className="text-[11px] hidden md:inline truncate max-w-[240px] font-mono" style={{ color: theme.systemColor }}>
             <span style={{ color: isRoot ? '#f87171' : theme.promptUser, fontWeight: 'bold' }}>{currentUser}</span>
@@ -601,6 +651,11 @@ export const TerminalApp: React.FC = () => {
         style={{ backgroundColor: theme.inputRowBg, borderColor: theme.borderColor }}
       >
         <span className="whitespace-nowrap select-none flex items-center text-xs">
+          {activeChroot && (
+            <span className="mr-1.5 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
+              jail:{activeChroot.template}
+            </span>
+          )}
           <span style={{ color: isRoot ? '#f87171' : theme.promptUser, fontWeight: 'bold' }}>
             {currentUser}@{hostname}
           </span>

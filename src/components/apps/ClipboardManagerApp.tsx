@@ -28,14 +28,14 @@ const DEFAULT_SNIPPETS: ClipboardSnippet[] = [
   },
   {
     id: '3',
-    text: '{"hostname": "helix-alpine", "architecture": "x86_64", "kernel": "6.6.14-virt"}',
+    text: '{"hostname": "helix-debian", "architecture": "x86_64", "kernel": "6.6.14-virt"}',
     timestamp: '42m ago',
     isPinned: false,
     type: 'json',
   },
   {
     id: '4',
-    text: 'root@helix-alpine:~# rc-service sshd restart',
+    text: 'root@helix-debian:~# rc-service sshd restart',
     timestamp: '1h ago',
     isPinned: false,
     type: 'code',

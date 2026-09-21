@@ -58,6 +58,9 @@ import { AsyncIOManagerApp } from './components/apps/AsyncIOManagerApp';
 import { GuiRunnerApp } from './components/apps/GuiRunnerApp';
 import { HelixUnifiedStudio } from './components/apps/HelixUnifiedStudio';
 import { OsSelectorApp } from './components/apps/OsSelectorApp';
+import { HelixAiApp } from './components/apps/HelixAiApp';
+import { P2PMeshApp } from './components/apps/P2PMeshApp';
+import { ApkRunnerApp } from './components/apps/ApkRunnerApp';
 import { MultiBootAssistantApp } from './components/apps/MultiBootAssistantApp';
 import { DynamicGuiWindow } from './components/apps/DynamicGuiWindow';
 import { NetworkMasterApp } from './components/apps/NetworkMasterApp';
@@ -69,14 +72,39 @@ import { CrossPlatformToolsApp } from './components/apps/CrossPlatformToolsApp';
 import { PythonEngineApp } from './components/apps/PythonEngineApp';
 import { PythonRetroGameSuiteApp } from './components/apps/PythonRetroGameSuiteApp';
 import { TrashApp } from './components/apps/TrashApp';
+import { SystemTelemetryApp } from './components/apps/SystemTelemetryApp';
+import { DockerApp } from './components/apps/DockerApp';
+import { GitStudioApp } from './components/apps/GitStudioApp';
+import { PacketAnalyzerApp } from './components/apps/PacketAnalyzerApp';
+import { ApiStudioApp } from './components/apps/ApiStudioApp';
+import { KernelModuleApp } from './components/apps/KernelModuleApp';
+import { AutoDetectionCenterApp } from './components/apps/AutoDetectionCenterApp';
+import { KernelMemoryMonitorApp } from './components/apps/KernelMemoryMonitorApp';
+import { WineAppWindow } from './components/apps/WineAppWindow';
+import { ChrootApp } from './components/apps/ChrootApp';
 import { DesktopContextMenu } from './components/DesktopContextMenu';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { Settings, HelixSettings } from './kernel/Settings';
 import { ThemeEngine } from './kernel/ThemeEngine';
+import { Toast } from './kernel/Toast';
+import { WindowErrorBoundary, RootErrorBoundary } from './components/ErrorBoundary';
 import { Power, RefreshCw } from 'lucide-react';
 
 export default function App() {
-  const [isBooted, setIsBooted] = useState(false);
+  const [isSafeMode, setIsSafeMode] = useState<boolean>(() => {
+    try {
+      return typeof localStorage !== 'undefined' && localStorage.getItem('helix_safe_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [isBooted, setIsBooted] = useState<boolean>(() => {
+    try {
+      return typeof localStorage !== 'undefined' && localStorage.getItem('helix_safe_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [isSystemHalted, setIsSystemHalted] = useState(false);
   const [windows, setWindows] = useState<WindowInstance[]>([]);
   const [activeWindowId, setActiveWindowId] = useState<string | null>(null);
@@ -155,12 +183,6 @@ export default function App() {
       setSettings(s);
     });
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((e) => {
-        console.warn('SW registration info:', e);
-      });
-    }
-
     const unsubWM = Kernel.wm.subscribe((wins) => {
       setWindows([...wins]);
       setActiveWindowId(Kernel.wm.getActiveId());
@@ -169,6 +191,8 @@ export default function App() {
     const unsubVM = Kernel.vm.onStateChange((state) => {
       if (state === 'stopped') {
         setIsSystemHalted(true);
+      } else if (state === 'ready' || state === 'booting') {
+        setIsSystemHalted(false);
       }
     });
 
@@ -306,6 +330,7 @@ export default function App() {
       case 'edit': return <EditorApp initialFile={(win.args?.file as string) || undefined} />;
       case 'store': return <StoreApp />;
       case 'mon': return <MonitorApp />;
+      case 'chroot': return <ChrootApp />;
       case 'files':
         return (
           <FilesApp
@@ -367,6 +392,18 @@ export default function App() {
       case 'pythonengine': return <PythonEngineApp />;
       case 'pythonarcade': return <PythonRetroGameSuiteApp />;
       case 'trash': return <TrashApp />;
+      case 'telemetry': return <SystemTelemetryApp />;
+      case 'docker': return <DockerApp />;
+      case 'gitstudio': return <GitStudioApp />;
+      case 'wireshark': return <PacketAnalyzerApp />;
+      case 'apistudio': return <ApiStudioApp />;
+      case 'kmod': return <KernelModuleApp />;
+      case 'autodetect': return <AutoDetectionCenterApp />;
+      case 'kernel-memory': return <KernelMemoryMonitorApp />;
+      case 'helix-ai': return <HelixAiApp notify={(m) => Toast.show(m)} />;
+      case 'p2p-mesh': return <P2PMeshApp notify={(m) => Toast.show(m)} />;
+      case 'apk-bridge': return <ApkRunnerApp notify={(m) => Toast.show(m)} />;
+      case 'wine-app': return <WineAppWindow windowId={win.id} args={win.args} />;
       case 'gui-window': return <DynamicGuiWindow guiId={win.args?.guiId as string} args={win.args} />;
       default: return <TerminalApp />;
     }
@@ -426,20 +463,21 @@ export default function App() {
   };
 
   return (
-    <div
-      ref={mainContainerRef}
-      className="fixed inset-0 text-[#edf1f7] font-sans select-none overflow-hidden flex flex-col"
-    >
-      {/* Background Wallpaper Layer (Completely separate for performance and custom fits) */}
-      <div 
-        id="desktop-background-layer"
-        className="absolute inset-0 z-0 pointer-events-none transition-all duration-500" 
-        style={getWallpaperBackground()} 
-      />
+    <RootErrorBoundary>
+      <div
+        ref={mainContainerRef}
+        className="fixed inset-0 text-[#edf1f7] font-sans select-none overflow-hidden flex flex-col"
+      >
+        {/* Background Wallpaper Layer (Completely separate for performance and custom fits) */}
+        <div 
+          id="desktop-background-layer"
+          className="absolute inset-0 z-0 pointer-events-none transition-all duration-500" 
+          style={getWallpaperBackground()} 
+        />
 
-      {!isBooted && <BootScreen onBootComplete={handleBootComplete} />}
+        {!isBooted && <BootScreen onBootComplete={handleBootComplete} />}
 
-      {/* Lightweight GPU-friendly decorative backdrop */}
+        {/* Lightweight GPU-friendly decorative backdrop */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-[1]">
         <div
           className="absolute inset-0 opacity-[0.03]"
@@ -511,7 +549,7 @@ export default function App() {
 
         {/* Dynamic Desktop Shortcut Layer */}
         <div 
-          className="absolute left-6 top-16 bottom-20 flex flex-col flex-wrap gap-4 select-none pointer-events-none z-10"
+          className="desktop-shortcut-grid absolute left-6 top-16 bottom-20 flex flex-col flex-wrap gap-4 select-none pointer-events-none z-10"
           style={{ width: 'fit-content', maxHeight: 'calc(100vh - 140px)' }}
         >
           {(settings.desktopShortcuts || []).map((appId) => {
@@ -541,13 +579,13 @@ export default function App() {
                   setSelectedShortcutId(appId);
                   setContextMenuPos({ x: e.clientX, y: e.clientY, type: 'shortcut-' + appId });
                 }}
-                className={`w-20 h-22 flex flex-col items-center justify-center rounded-2xl p-2.5 transition duration-150 cursor-pointer pointer-events-auto border ${
+                className={`desktop-shortcut-item w-20 h-22 flex flex-col items-center justify-center rounded-2xl p-2.5 transition duration-150 cursor-pointer pointer-events-auto border ${
                   isSelected 
                     ? 'bg-[#12141c]/65 border-[#6ee7b7]/60 text-white shadow-xl shadow-black/50 scale-105' 
                     : 'bg-[#12141c]/30 border-white/5 hover:bg-white/5 active:bg-white/10 text-gray-200'
                 }`}
               >
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-2xl border mb-1.5 shadow-md ${appDef.iconBg || 'bg-white/5 border-white/10'}`}>
+                <div className={`desktop-shortcut-icon w-11 h-11 rounded-xl flex items-center justify-center text-2xl border mb-1.5 shadow-md ${appDef.iconBg || 'bg-white/5 border-white/10'}`}>
                   <span className="select-none filter drop-shadow-md leading-none">{appDef.icon}</span>
                 </div>
                 <span className="text-[10px] font-semibold font-mono truncate w-full text-center px-0.5 select-none drop-shadow-lg text-white">
@@ -575,7 +613,9 @@ export default function App() {
                 onUpdateSize={(w, h) => Kernel.wm.updateBounds(win.id, { width: w, height: h })}
                 onOpenAppMenu={(x, y, appId) => setContextMenuPos({ x, y, type: appId })}
               >
-                {renderAppContent(win)}
+                <WindowErrorBoundary appId={win.appId} windowId={win.id} title={def?.title}>
+                  {renderAppContent(win)}
+                </WindowErrorBoundary>
               </WindowFrame>
             </div>
           );
@@ -628,6 +668,27 @@ export default function App() {
 
       <OfflineIndicator />
 
+      {isSafeMode && (
+        <div className="fixed top-0 left-0 right-0 z-[10001] bg-amber-500/20 border-b border-amber-500/30 backdrop-blur-md px-4 py-1.5 flex items-center justify-between text-xs font-mono text-amber-200">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span className="font-bold">HELIX SAFE MODE ACTIVE</span>
+            <span className="hidden sm:inline text-amber-300/70">— Clean VFS cache & isolated runtime loaded</span>
+          </div>
+          <button
+            onClick={() => {
+              try {
+                localStorage.removeItem('helix_safe_mode');
+              } catch {}
+              window.location.reload();
+            }}
+            className="px-2.5 py-0.5 rounded-md bg-amber-400 hover:bg-amber-300 text-black font-bold text-[11px] transition cursor-pointer"
+          >
+            Exit Safe Mode & Normal Reboot
+          </button>
+        </div>
+      )}
+
       {isSystemHalted && (
         <div className="fixed inset-0 bg-[#07080c] flex flex-col items-center justify-center z-[9999] transition-all duration-700 animate-fade-in text-gray-200">
           <div className="max-w-md w-full p-8 rounded-3xl bg-[#0f111a] border border-white/5 shadow-2xl flex flex-col items-center text-center space-y-6">
@@ -650,8 +711,12 @@ export default function App() {
             <button
               onClick={async () => {
                 setIsSystemHalted(false);
-                setIsBooted(false); // triggers bootscreen!
-                await Kernel.vm.start();
+                setIsBooted(true);
+                try {
+                  await Kernel.vm.start();
+                } catch (err) {
+                  console.warn('VM reboot notice:', err);
+                }
               }}
               className="w-full py-2.5 rounded-xl bg-[#6ee7b7] text-black hover:bg-[#5cd4a5] font-bold text-xs transition duration-200 cursor-pointer shadow-md shadow-[#6ee7b7]/15 flex items-center justify-center gap-1.5"
             >
@@ -661,6 +726,7 @@ export default function App() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </RootErrorBoundary>
   );
 }

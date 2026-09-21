@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Cpu, HardDrive, Zap, Trash2, RefreshCw, Search, PanelLeftClose, PanelLeft, Pause, Play, AlertCircle, Shield } from 'lucide-react';
 import { Toast } from '../../kernel/Toast';
+import { HostKernelBridge } from '../../kernel/HostKernelBridge';
 
 interface ProcessItem {
   pid: number;
@@ -29,36 +30,59 @@ export const ProcManApp: React.FC = () => {
   const [selectedPid, setSelectedPid] = useState<number | null>(42);
   const [search, setSearch] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
+  const [isHostConnected, setIsHostConnected] = useState(false);
+
+  const fetchHostProcesses = async () => {
+    try {
+      const realProcs = await HostKernelBridge.getProcesses();
+      if (realProcs && realProcs.length > 0) {
+        setIsHostConnected(true);
+        const mapped: ProcessItem[] = realProcs.map((p) => ({
+          pid: p.pid,
+          name: p.command.split(' ')[0].split('/').pop() || p.command,
+          user: p.user,
+          cpu: p.cpu,
+          mem: p.mem,
+          status: p.stat.substring(0, 1) || 'S',
+          threads: 1,
+          nice: 0,
+          cmdline: p.command,
+        }));
+        setProcesses(mapped);
+      }
+    } catch {
+      setIsHostConnected(false);
+    }
+  };
 
   useEffect(() => {
+    fetchHostProcesses();
     const timer = setInterval(() => {
-      setProcesses((prev) =>
-        prev.map((p) => ({
-          ...p,
-          cpu: p.status === 'T' ? 0 : p.name.includes('v86') ? +(Math.random() * 6 + 2).toFixed(1) : +(Math.random() * 2).toFixed(1),
-          mem: +(p.mem + (Math.random() * 0.2 - 0.1)).toFixed(1),
-        }))
-      );
-    }, 2000);
+      fetchHostProcesses();
+    }, 2500);
     return () => clearInterval(timer);
   }, []);
 
-  const handleSignal = (pid: number, signal: 'KILL' | 'TERM' | 'STOP' | 'CONT') => {
+  const handleSignal = async (pid: number, signal: 'KILL' | 'TERM' | 'STOP' | 'CONT') => {
     if (pid <= 2 && (signal === 'KILL' || signal === 'TERM')) {
       Toast.show('Cannot terminate critical kernel system process (PID ' + pid + ')', '⚠️');
       return;
     }
 
     if (signal === 'KILL' || signal === 'TERM') {
+      const sigName = signal === 'KILL' ? 'SIGKILL' : 'SIGTERM';
+      await HostKernelBridge.killProcess(pid, sigName).catch(() => {});
       setProcesses((prev) => prev.filter((p) => p.pid !== pid));
-      Toast.show(`Process ${pid} sent SIG${signal} and terminated`, '✓');
+      Toast.show(`Process ${pid} sent ${sigName} and terminated`, '✓');
       if (selectedPid === pid) setSelectedPid(null);
     } else if (signal === 'STOP') {
+      await HostKernelBridge.killProcess(pid, 'SIGSTOP').catch(() => {});
       setProcesses((prev) =>
         prev.map((p) => (p.pid === pid ? { ...p, status: 'T' } : p))
       );
       Toast.show(`Process ${pid} paused (SIGSTOP)`, '⏸️');
     } else if (signal === 'CONT') {
+      await HostKernelBridge.killProcess(pid, 'SIGCONT').catch(() => {});
       setProcesses((prev) =>
         prev.map((p) => (p.pid === pid ? { ...p, status: 'S' } : p))
       );
@@ -91,6 +115,20 @@ export const ProcManApp: React.FC = () => {
           </button>
           <Activity className="w-4 h-4 text-[#6ee7b7]" />
           <span className="font-semibold text-white">Alpine Task & Process Manager</span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono border ${
+            isHostConnected 
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
+              : 'bg-white/5 text-gray-400 border-white/10'
+          }`}>
+            {isHostConnected ? 'Host Kernel Live' : 'VFS Task Sandbox'}
+          </span>
+          <button
+            onClick={fetchHostProcesses}
+            className="p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white transition cursor-pointer"
+            title="Refresh Process List"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
         </div>
         <div className="flex items-center gap-3 font-mono text-[11px] text-gray-300">
           <div className="relative">

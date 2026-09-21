@@ -90,3 +90,89 @@
     overscroll-behavior: contain;
   }
 }
+
+/* Responsive CSS grid layout & viewport scaling for #desktop */
+#desktop {
+  display: flex;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+/* High-DPI Display Adjustments (Retina, 4K, 192dpi / 2x dppx) */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  #desktop {
+    image-rendering: -webkit-optimize-contrast;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #desktop .desktop-shortcut-grid {
+    gap: 1.25rem;
+    padding: 0.5rem;
+  }
+
+  #desktop .desktop-shortcut-item {
+    transform: translateZ(0);
+    backdrop-filter: blur(8px);
+  }
+
+  #desktop .desktop-shortcut-icon {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  }
+}
+
+/* Mobile & Small Viewport Screen Scaling (< 768px) */
+@media screen and (max-width: 768px) {
+  #desktop {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  #desktop .desktop-shortcut-grid {
+    left: 0.75rem !important;
+    top: 3.5rem !important;
+    bottom: 4.5rem !important;
+    gap: 0.75rem !important;
+    max-height: calc(100vh - 120px) !important;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)) !important;
+    grid-auto-flow: dense !important;
+  }
+
+  #desktop .desktop-shortcut-item {
+    width: 72px !important;
+    height: 76px !important;
+    padding: 0.35rem !important;
+    border-radius: 0.875rem !important;
+  }
+
+  #desktop .desktop-shortcut-icon {
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+    font-size: 1.25rem !important;
+    margin-bottom: 0.25rem !important;
+  }
+}
+
+/* Ultra-wide / Large Displays (> 1920px) */
+@media screen and (min-width: 1920px) {
+  #desktop .desktop-shortcut-grid {
+    gap: 1.5rem !important;
+    top: 4.5rem !important;
+    left: 2rem !important;
+  }
+
+  #desktop .desktop-shortcut-item {
+    width: 90px !important;
+    height: 96px !important;
+  }
+
+  #desktop .desktop-shortcut-icon {
+    width: 3.25rem !important;
+    height: 3.25rem !important;
+    font-size: 1.75rem !important;
+  }
+}
+

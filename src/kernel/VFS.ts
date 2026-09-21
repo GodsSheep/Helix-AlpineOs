@@ -34,29 +34,80 @@ export class VirtualFileSystem {
   async init(): Promise<void> {
     if (this.isInitialized && this.db) return;
 
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open('HelixDrive', 2);
-
-      req.onupgradeneeded = (e: IDBVersionChangeEvent) => {
-        const db = (e.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains('files')) {
-          db.createObjectStore('files', { keyPath: 'path' });
-        }
-      };
-
-      req.onsuccess = async (e) => {
-        this.db = (e.target as IDBOpenDBRequest).result;
+    try {
+      if (typeof window === 'undefined' || typeof indexedDB === 'undefined') {
+        console.warn('VFS: IndexedDB not available in current context, using in-memory VFS store.');
         this.isInitialized = true;
-        await this.loadInitialCache();
-        await this.seedDefaults();
-        resolve();
-      };
+        await this.seedDefaults().catch(() => {});
+        return;
+      }
 
-      req.onerror = (e) => {
-        console.error('VFS IndexedDB Error:', e);
-        reject(e);
-      };
-    });
+      await new Promise<void>((resolve) => {
+        let isDone = false;
+        const done = () => {
+          if (!isDone) {
+            isDone = true;
+            resolve();
+          }
+        };
+
+        const timeout = setTimeout(() => {
+          console.warn('VFS IndexedDB open timed out after 2500ms. Defaulting to in-memory VFS cache.');
+          this.isInitialized = true;
+          this.seedDefaults().catch(() => {}).finally(done);
+        }, 2500);
+
+        try {
+          const req = indexedDB.open('HelixDrive', 2);
+
+          req.onupgradeneeded = (e: IDBVersionChangeEvent) => {
+            try {
+              const db = (e.target as IDBOpenDBRequest).result;
+              if (!db.objectStoreNames.contains('files')) {
+                db.createObjectStore('files', { keyPath: 'path' });
+              }
+            } catch (upgradeErr) {
+              console.warn('VFS onupgradeneeded non-fatal notice:', upgradeErr);
+            }
+          };
+
+          req.onsuccess = async (e) => {
+            clearTimeout(timeout);
+            try {
+              this.db = (e.target as IDBOpenDBRequest).result;
+              this.isInitialized = true;
+              await this.loadInitialCache().catch(() => {});
+              await this.seedDefaults().catch(() => {});
+            } catch (loadErr) {
+              console.warn('VFS loadInitialCache notice:', loadErr);
+            } finally {
+              done();
+            }
+          };
+
+          req.onerror = (e) => {
+            clearTimeout(timeout);
+            console.warn('VFS IndexedDB Error (falling back to memory):', e);
+            this.isInitialized = true;
+            this.seedDefaults().catch(() => {}).finally(done);
+          };
+
+          req.onblocked = () => {
+            clearTimeout(timeout);
+            console.warn('VFS IndexedDB blocked by concurrent connection; continuing with memory cache.');
+            this.isInitialized = true;
+            this.seedDefaults().catch(() => {}).finally(done);
+          };
+        } catch (openErr) {
+          clearTimeout(timeout);
+          console.warn('VFS indexedDB.open exception (sandboxed/private browsing):', openErr);
+          this.isInitialized = true;
+          this.seedDefaults().catch(() => {}).finally(done);
+        }
+      });
+    } catch {
+      this.isInitialized = true;
+    }
   }
 
   private async loadInitialCache(): Promise<void> {
@@ -211,6 +262,19 @@ export class VirtualFileSystem {
     this.notifyPathListeners(normPath, null);
     this.notifyListeners();
     this.scheduleDebouncedFlush();
+  }
+
+  // API Aliases for seamless interoperability
+  async writeFile(path: string, content: string): Promise<void> {
+    return this.write(path, content);
+  }
+
+  async readFile(path: string): Promise<string | null> {
+    return this.read(path);
+  }
+
+  async deleteFile(path: string): Promise<void> {
+    return this.delete(path);
   }
 
   async copy(srcPath: string, dstPath: string): Promise<boolean> {

@@ -412,9 +412,19 @@ export const OsSelectorApp: React.FC = () => {
       {activeTab === 'profiles' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
-            {ALL_OS_PROFILES.map((profile) => {
+             {ALL_OS_PROFILES.map((profile) => {
               const isSelected = selectedId === profile.id;
               const isActiveNow = currentActive === profile.id;
+
+              let name = profile.name;
+              let version = profile.version;
+              let description = profile.description;
+              if (profile.id === 'custom') {
+                const info = Kernel.vm.parseCustomOsInfo();
+                name = info.name;
+                version = info.version;
+                description = info.tagline || profile.description;
+              }
 
               return (
                 <div
@@ -438,14 +448,14 @@ export const OsSelectorApp: React.FC = () => {
                       <span className="text-2xl p-2 rounded-xl bg-black/40 border border-white/10">{profile.icon}</span>
                       <div>
                         <h2 className="font-bold text-sm text-white flex items-center gap-1.5">
-                          {profile.name}
+                          {name}
                         </h2>
-                        <span className="text-[10px] font-mono text-gray-400">{profile.version}</span>
+                        <span className="text-[10px] font-mono text-gray-400">{version}</span>
                       </div>
                     </div>
 
                     <p className="text-xs text-gray-300 mb-3 line-clamp-2 leading-relaxed">
-                      {profile.description}
+                      {description}
                     </p>
 
                     <div className="space-y-1 mb-3">

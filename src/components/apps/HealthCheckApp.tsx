@@ -19,6 +19,7 @@ import { Kernel } from '../../kernel';
 import { Toast } from '../../kernel/Toast';
 import { SoundManager } from '../../kernel/SoundManager';
 import { fetchAndValidateBiosRom, KNOWN_BIOS_SIGNATURES } from '../../kernel/BiosValidator';
+import { SelfHealingEngine, SelfHealingReport } from '../../kernel/SelfHealingEngine';
 
 interface DiagnosticMetric {
   category: 'Kernel' | 'VFS' | 'Memory' | 'BIOS' | 'Services' | 'GPU';
@@ -244,14 +245,33 @@ export const HealthCheckApp: React.FC = () => {
     setIsRunningDiag(false);
   };
 
-  const handleAutoHeal = () => {
-    SoundManager.play('success');
-    Toast.show('Executing System Memory Flush & Cache Optimization...', '✨');
+  const handleAutoHeal = async () => {
+    SoundManager.play('open');
+    Toast.show('Executing System Self-Healing & Integrity Auto-Repair...', '🛠️');
+    
+    try {
+      const report = await SelfHealingEngine.runFullSystemSelfRepair();
+      const nowStr = new Date().toLocaleTimeString();
+      const newLogs: { ts: string; msg: string; type: 'info' | 'ok' | 'warn' }[] = [
+        { ts: nowStr, msg: `Self-healing completed: ${report.repairedIssues} issues repaired, ${report.passedChecks}/${report.totalChecks} checks verified.`, type: 'ok' },
+      ];
+      if (report.repairs.length > 0) {
+        report.repairs.forEach((r) => newLogs.push({ ts: nowStr, msg: `[REPAIR] ${r}`, type: 'ok' }));
+      }
+      if (report.warnings.length > 0) {
+        report.warnings.forEach((w) => newLogs.push({ ts: nowStr, msg: `[NOTICE] ${w}`, type: 'warn' }));
+      }
+      setLogs((prev) => [...newLogs, ...prev].slice(0, 30));
+    } catch (err) {
+      Toast.show(`Self-healing notice: ${String(err)}`, '⚠️');
+    }
+
     // Run Garbage Collection / cache flush simulation
     if (window.gc) {
       try { window.gc(); } catch { /* ignore */ }
     }
-    runDiagnosticSweep();
+    await runDiagnosticSweep();
+    SoundManager.play('success');
   };
 
   useEffect(() => {

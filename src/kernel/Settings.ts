@@ -1,10 +1,29 @@
+import { HostKernelBridge } from './HostKernelBridge';
+
 // Helix OS Settings & Comprehensive System Configuration Engine
 
-export type FontScale = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-export type DisplayScale = '80%' | '90%' | '100%' | '110%' | '125%';
-export type UiDensity = 'compact' | 'comfortable' | 'spacious';
+export type FontScale = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+export type DisplayScale = '75%' | '80%' | '90%' | '100%' | '110%' | '125%' | '150%' | '175%' | '200%';
+export type UiDensity = 'ultra-compact' | 'compact' | 'comfortable' | 'spacious' | 'touch';
 export type PowerProfile = 'performance' | 'balanced' | 'powersave' | 'eco';
-export type CpuGovernor = 'performance' | 'powersave' | 'ondemand' | 'conservative';
+export type CpuGovernor = 'performance' | 'powersave' | 'ondemand' | 'conservative' | 'schedutil';
+export type WindowSizePreset = 'compact' | 'standard' | 'large' | 'wide' | 'ultrawide' | 'maximized' | 'custom';
+export type WindowTitlebarHeight = 'minimal' | 'compact' | 'standard' | 'spacious';
+export type WindowCornerRadius = 'sharp' | 'subtle' | 'modern' | 'curved' | 'extra-round';
+export type WindowBorderWidth = 'none' | '1px' | '2px' | '3px';
+export type WindowGlowEffect = 'none' | 'subtle' | 'medium' | 'high' | 'neon';
+export type WindowControlsStyle = 'mac' | 'windows' | 'linux' | 'minimal';
+export type WindowMinimizeStyle = 'scale' | 'slide' | 'genie' | 'instant';
+export type WindowDoubleClickAction = 'maximize' | 'shade' | 'center' | 'snap-left' | 'fit-screen' | 'none';
+export type WindowAspectLock = 'freeform' | '16:9' | '4:3' | '16:10' | '3:2';
+export type WindowPlacementStrategy = 'center' | 'cascade' | 'tile';
+export type SoundTheme = 'modern' | 'cyber' | 'mech' | 'scifi' | 'silent';
+export type NightShiftMode = 'off' | 'mild' | 'warm' | 'intense';
+export type LiveWallpaperMode = 'none' | 'matrix' | 'starfield' | 'aurora' | 'cyber-grid';
+export type DockStyle = 'floating' | 'full-width' | 'pill' | 'windows-bar';
+export type DockAlignment = 'center' | 'start' | 'end';
+export type DockIconSize = 'micro' | 'small' | 'medium' | 'large' | 'xlarge';
+export type GlobalFontFamily = 'system' | 'jetbrains' | 'fira' | 'inter' | 'outfit' | 'space' | 'roboto';
 
 export interface HelixTheme {
   id: string;
@@ -42,43 +61,129 @@ export interface HelixSettings {
   previousDarkThemeId?: string;
   customWallpaperUrl?: string;
   wallpaperPreset: string;
-  wallpaperStyle: 'cover' | 'contain' | 'stretch' | 'tile';
+  wallpaperStyle: 'cover' | 'contain' | 'stretch' | 'tile' | 'center';
+  wallpaperSolidColor: string;
+  liveWallpaper: LiveWallpaperMode;
+  wallpaperBrightness: number;
   accentColorHex?: string;
-  dockPosition: 'bottom' | 'top' | 'left' | 'right';
-  dockSize: 'compact' | 'normal' | 'large';
-  dockAutoHide: boolean;
-  dockIconSize: 'small' | 'medium' | 'large';
-  dockShowActiveIndicators: boolean;
-  dockMagnification: boolean;
-  dockShowRecentApps: boolean;
   enableBlur: boolean;
+  blurIntensity: number;
+  glassOpacity: number;
   enableAnimations: boolean;
+  animationSpeed: 'fast' | 'normal' | 'relaxed';
   darkMode: boolean;
   highContrast: boolean;
   customThemes: HelixTheme[];
-  
+  customFontFamily: GlobalFontFamily;
+  cursorStyle: 'default' | 'cyan-glow' | 'emerald-glow' | 'amber-glow' | 'large-white';
+
+  // Window Fit, Sizing & Customization
+  windowDefaultSize: WindowSizePreset;
+  windowCustomWidth: number;
+  windowCustomHeight: number;
+  windowTitlebarHeight: WindowTitlebarHeight;
+  windowCornerRadius: WindowCornerRadius;
+  windowBorderWidth: WindowBorderWidth;
+  windowGlowEffect: WindowGlowEffect;
+  windowInactiveOpacity: number;
+  windowControlsStyle: WindowControlsStyle;
+  windowMinimizeStyle: WindowMinimizeStyle;
+  windowTitlebarDoubleClick: WindowDoubleClickAction;
+  windowAeroShake: boolean;
+  windowEdgeMagnetism: boolean;
+  windowInterlockMagnetism: boolean;
+  windowDefaultPlacement: WindowPlacementStrategy;
+  windowAspectLock: WindowAspectLock;
+  autoSnapWindows: boolean;
+  windowSnapThreshold: number;
+  windowShowSnapPreview: boolean;
+
   // Display, Font & Screen Fit
   fontScale: FontScale;
   displayScale: DisplayScale;
   uiDensity: UiDensity;
   autoFitDisplay: boolean;
   enableSafeAreas: boolean;
-  autoSnapWindows: boolean;
-  windowSnapThreshold: number;
+  nightShift: NightShiftMode;
+  refreshRateCap: number;
 
-  // Terminal
+  // Dock, Taskbar & Launcher
+  dockPosition: 'bottom' | 'top' | 'left' | 'right';
+  dockAlignment: DockAlignment;
+  dockStyle: DockStyle;
+  dockSize: 'compact' | 'normal' | 'large';
+  dockAutoHide: boolean;
+  dockAutoHideDelay: number;
+  dockIconSize: DockIconSize;
+  dockShowActiveIndicators: boolean;
+  dockMagnification: boolean;
+  dockMagnificationScale: number;
+  dockShowRecentApps: boolean;
+  dockRecentAppsCount: number;
+  dockShowTrash: boolean;
+  dockBounceOnLaunch: boolean;
+
+  // Audio, Sounds & Haptics
+  volume: number;
+  isMuted: boolean;
+  soundEffectsEnabled: boolean;
+  soundTheme: SoundTheme;
+  soundEventWindowOpen: boolean;
+  soundEventWindowClose: boolean;
+  soundEventWindowMinimize: boolean;
+  soundEventWindowSnap: boolean;
+  soundEventTrash: boolean;
+  soundEventError: boolean;
+  soundEventTerminalBell: boolean;
+  hapticFeedbackEnabled: boolean;
+
+  // Top Bar & Menubar Customization
+  topbarShowOsBadge: boolean;
+  topbarShowShellButton: boolean;
+  topbarShowActivityButton: boolean;
+  topbarShowSettingsButton: boolean;
+  topbarShowZenButton: boolean;
+  topbarShowPwaInstall: boolean;
+  topbarShowBattery: boolean;
+  topbarShowBatteryPercent: boolean;
+  topbarShowWifi: boolean;
+  topbarShowQuickSettings: boolean;
+  topbarShowLinuxStatus: boolean;
+  topbarShowNotificationBell: boolean;
+  topbarShowClockSeconds: boolean;
+  topbarShowDate: boolean;
+  topbarClockFormat: '12h' | '24h';
+  topbarBlur: boolean;
+
+  // Terminal & Shell Environment
   terminalFontSize: number;
   terminalCursor: 'block' | 'underline' | 'bar';
+  terminalCursorBlink: boolean;
   terminalFontFamily: string;
+  terminalScrollback: number;
   autoStartTerminal: boolean;
+  terminalBellSound: boolean;
+  terminalCopyOnSelect: boolean;
+  terminalRightClickPaste: boolean;
+  terminalOpacity: number;
 
   // Linux Virtual Machine & Kernel
   vmMemoryMB: number;
   vmCores: number;
   vmEngineMode: 'jit' | 'interpreted' | 'microvm';
+  vmSwapMB: number;
   sharedMountEnabled: boolean;
-  bootVerbosity: 'quiet' | 'normal' | 'verbose';
+  bootVerbosity: 'quiet' | 'normal' | 'verbose' | 'debug';
+  virtioBlockDevice: boolean;
+  virtioNetworkDevice: boolean;
+  osDistroProfile: string;
   
+  // Safe-State Engine & RAM Checkpoint Automation
+  safeStateAutoSnapshot: boolean;
+  safeStateThresholdPercent: number;
+  safeStateTerminalBroadcast: boolean;
+  safeStateAutoRecoverOnPanic: boolean;
+
   // Power & Battery Control
   powerProfile: PowerProfile;
   cpuGovernor: CpuGovernor;
@@ -93,30 +198,16 @@ export interface HelixSettings {
   enableCommunityRepo: boolean;
   autoUpdateReposOnBoot: boolean;
 
-  // Network & Audio
+  // Network & DNS
   networkInterfaceEnabled: boolean;
   dnsServers: string;
-  volume: number;
-  isMuted: boolean;
-  soundEffectsEnabled: boolean;
+  dnsPreset: string;
+  mtuSize: number;
+  vpnEnabled: boolean;
+  hotspotEnabled: boolean;
 
   // Hardware & Sensors Sync
   syncHostHardwareMetrics: boolean;
-
-  // Top Bar & Menubar Customization
-  topbarShowOsBadge: boolean;
-  topbarShowShellButton: boolean;
-  topbarShowActivityButton: boolean;
-  topbarShowSettingsButton: boolean;
-  topbarShowZenButton: boolean;
-  topbarShowPwaInstall: boolean;
-  topbarShowBattery: boolean;
-  topbarShowWifi: boolean;
-  topbarShowQuickSettings: boolean;
-  topbarShowLinuxStatus: boolean;
-  topbarShowNotificationBell: boolean;
-  topbarShowClockSeconds: boolean;
-  topbarClockFormat: '12h' | '24h';
 
   // VFS & Cache Persistence Settings
   vfsQuotaMegabytes: number;
@@ -134,11 +225,20 @@ export interface HelixSettings {
   pythonExecutionEngine: 'kernel' | 'wasm' | 'hybrid';
   pythonAutoImportNumpy: boolean;
 
+  // Security, Privacy & Lock Screen
+  screenLockEnabled: boolean;
+  screenLockPin: string;
+  idleLockMinutes: number;
+  anonymousTelemetry: boolean;
+
   // App Lifecycle & Uninstall Management
   uninstalledAppIds: string[];
 
-  // Desktop shortcuts
+  // Desktop shortcuts & Icons
   desktopShortcuts: string[];
+  desktopIconSize: 'small' | 'medium' | 'large';
+  desktopGridSnap: boolean;
+  desktopShowWatermark: boolean;
 }
 
 export const THEME_PRESETS: HelixTheme[] = [
@@ -300,59 +400,82 @@ const DEFAULT_SETTINGS: HelixSettings = {
   previousDarkThemeId: 'default',
   wallpaperPreset: 'mesh-emerald',
   wallpaperStyle: 'cover',
+  wallpaperSolidColor: '#07080b',
+  liveWallpaper: 'none',
+  wallpaperBrightness: 100,
   accentColorHex: '#6ee7b7',
-  dockPosition: 'bottom',
-  dockSize: 'normal',
-  dockAutoHide: false,
-  dockIconSize: 'medium',
-  dockShowActiveIndicators: true,
-  dockMagnification: true,
-  dockShowRecentApps: true,
   enableBlur: true,
+  blurIntensity: 12,
+  glassOpacity: 85,
   enableAnimations: true,
+  animationSpeed: 'normal',
   darkMode: true,
   highContrast: false,
   customThemes: [],
+  customFontFamily: 'system',
+  cursorStyle: 'default',
 
+  // Window Fit, Sizing & Customization
+  windowDefaultSize: 'standard',
+  windowCustomWidth: 800,
+  windowCustomHeight: 520,
+  windowTitlebarHeight: 'standard',
+  windowCornerRadius: 'modern',
+  windowBorderWidth: '1px',
+  windowGlowEffect: 'medium',
+  windowInactiveOpacity: 95,
+  windowControlsStyle: 'linux',
+  windowMinimizeStyle: 'scale',
+  windowTitlebarDoubleClick: 'maximize',
+  windowAeroShake: true,
+  windowEdgeMagnetism: true,
+  windowInterlockMagnetism: true,
+  windowDefaultPlacement: 'cascade',
+  windowAspectLock: 'freeform',
+  autoSnapWindows: true,
+  windowSnapThreshold: 15,
+  windowShowSnapPreview: true,
+
+  // Display, Font & Screen Fit
   fontScale: 'md',
   displayScale: '100%',
   uiDensity: 'comfortable',
   autoFitDisplay: true,
   enableSafeAreas: true,
-  autoSnapWindows: true,
-  windowSnapThreshold: 15,
+  nightShift: 'off',
+  refreshRateCap: 60,
 
-  terminalFontSize: 13,
-  terminalCursor: 'block',
-  terminalFontFamily: 'JetBrains Mono, Fira Code, Menlo, Monaco, monospace',
-  autoStartTerminal: true,
+  // Dock, Taskbar & Launcher
+  dockPosition: 'bottom',
+  dockAlignment: 'center',
+  dockStyle: 'floating',
+  dockSize: 'normal',
+  dockAutoHide: false,
+  dockAutoHideDelay: 300,
+  dockIconSize: 'medium',
+  dockShowActiveIndicators: true,
+  dockMagnification: true,
+  dockMagnificationScale: 1.25,
+  dockShowRecentApps: true,
+  dockRecentAppsCount: 5,
+  dockShowTrash: true,
+  dockBounceOnLaunch: true,
 
-  vmMemoryMB: 256,
-  vmCores: 2,
-  vmEngineMode: 'jit',
-  sharedMountEnabled: true,
-  bootVerbosity: 'normal',
-
-  powerProfile: 'balanced',
-  cpuGovernor: 'ondemand',
-  autoDimOnLowBattery: true,
-  lowBatteryThreshold: 20,
-  suspendTimeoutMinutes: 15,
-  realDeviceBatterySync: true,
-
-  apkMirrorUrl: 'https://dl-cdn.alpinelinux.org/alpine/v3.20',
-  enableTestingRepo: true,
-  enableCommunityRepo: true,
-  autoUpdateReposOnBoot: false,
-
-  networkInterfaceEnabled: true,
-  dnsServers: '1.1.1.1, 8.8.8.8, 9.9.9.9',
+  // Audio, Sounds & Haptics
   volume: 80,
   isMuted: false,
   soundEffectsEnabled: true,
+  soundTheme: 'modern',
+  soundEventWindowOpen: true,
+  soundEventWindowClose: true,
+  soundEventWindowMinimize: true,
+  soundEventWindowSnap: true,
+  soundEventTrash: true,
+  soundEventError: true,
+  soundEventTerminalBell: true,
+  hapticFeedbackEnabled: true,
 
-  syncHostHardwareMetrics: true,
-
+  // Top Bar & Menubar Customization
   topbarShowOsBadge: true,
   topbarShowShellButton: true,
   topbarShowActivityButton: true,
@@ -360,29 +483,100 @@ const DEFAULT_SETTINGS: HelixSettings = {
   topbarShowZenButton: true,
   topbarShowPwaInstall: true,
   topbarShowBattery: true,
+  topbarShowBatteryPercent: true,
   topbarShowWifi: true,
   topbarShowQuickSettings: true,
   topbarShowLinuxStatus: true,
   topbarShowNotificationBell: true,
   topbarShowClockSeconds: false,
+  topbarShowDate: true,
   topbarClockFormat: '12h',
+  topbarBlur: true,
 
+  // Terminal & Shell Environment
+  terminalFontSize: 13,
+  terminalCursor: 'block',
+  terminalCursorBlink: true,
+  terminalFontFamily: 'JetBrains Mono, Fira Code, Menlo, Monaco, monospace',
+  terminalScrollback: 5000,
+  autoStartTerminal: true,
+  terminalBellSound: true,
+  terminalCopyOnSelect: false,
+  terminalRightClickPaste: true,
+  terminalOpacity: 95,
+
+  // Linux Virtual Machine & Kernel
+  vmMemoryMB: 256,
+  vmCores: 2,
+  vmEngineMode: 'jit',
+  vmSwapMB: 256,
+  sharedMountEnabled: true,
+  bootVerbosity: 'normal',
+  virtioBlockDevice: true,
+  virtioNetworkDevice: true,
+  osDistroProfile: 'alpine',
+
+  // Safe-State Engine & RAM Checkpoint Automation
+  safeStateAutoSnapshot: false,
+  safeStateThresholdPercent: 85,
+  safeStateTerminalBroadcast: false,
+  safeStateAutoRecoverOnPanic: true,
+
+  // Power & Battery Control
+  powerProfile: 'balanced',
+  cpuGovernor: 'ondemand',
+  autoDimOnLowBattery: true,
+  lowBatteryThreshold: 20,
+  suspendTimeoutMinutes: 15,
+  realDeviceBatterySync: true,
+
+  // Package Manager & Repositories
+  apkMirrorUrl: 'https://dl-cdn.alpinelinux.org/alpine/v3.20',
+  enableTestingRepo: true,
+  enableCommunityRepo: true,
+  autoUpdateReposOnBoot: false,
+
+  // Network & DNS
+  networkInterfaceEnabled: true,
+  dnsServers: '1.1.1.1, 8.8.8.8, 9.9.9.9',
+  dnsPreset: 'cloudflare',
+  mtuSize: 1500,
+  vpnEnabled: false,
+  hotspotEnabled: false,
+
+  // Hardware & Sensors Sync
+  syncHostHardwareMetrics: true,
+
+  // VFS & Cache Persistence Settings
   vfsQuotaMegabytes: 512,
   prioritizeVfsStorage: true,
   biosIntegrityValidationOnBoot: true,
   swAutoReloadOnCorruption: true,
 
+  // Trash & Recycle Bin Settings
   trashAutoEmptyDays: 30,
   trashConfirmOnDelete: true,
   trashPlaySoundOnEmpty: true,
   trashMaxCapacityMb: 256,
 
+  // Python Execution Engine
   pythonExecutionEngine: 'kernel',
   pythonAutoImportNumpy: true,
 
+  // Security, Privacy & Lock Screen
+  screenLockEnabled: false,
+  screenLockPin: '',
+  idleLockMinutes: 0,
+  anonymousTelemetry: false,
+
+  // App Lifecycle & Uninstall Management
   uninstalledAppIds: [],
 
+  // Desktop shortcuts & Icons
   desktopShortcuts: ['term', 'files', 'trash', 'pythonengine', 'crossplatform', 'betterbrowser', 'healthcheck', 'settings'],
+  desktopIconSize: 'medium',
+  desktopGridSnap: true,
+  desktopShowWatermark: true,
 };
 
 export class SettingsService {
@@ -580,10 +774,23 @@ export class SettingsService {
     this.hardwareListeners.forEach((fn) => fn(this.hardwareInfo));
   }
 
+  private syncDebounceTimer: any = null;
+
   private save(): void {
     try {
       localStorage.setItem('helix_settings', JSON.stringify(this.settings));
     } catch {}
+
+    // Debounced auto-sync to Linux host storage
+    if (typeof window !== 'undefined') {
+      if (this.syncDebounceTimer) clearTimeout(this.syncDebounceTimer);
+      this.syncDebounceTimer = setTimeout(() => {
+        try {
+          const vfs = (window as any).Kernel?.vfs || null;
+          HostKernelBridge.syncUserData(this.settings.osDistroProfile || 'alpine', vfs).catch(() => {});
+        } catch {}
+      }, 1200);
+    }
   }
 
   private load(): void {
@@ -688,6 +895,46 @@ export class SettingsService {
     root.style.setProperty('--text', theme.text);
     root.style.setProperty('--muted', theme.muted);
     root.style.setProperty('--line', theme.line);
+
+    // Window Radius Map
+    const radiusMap: Record<string, string> = {
+      sharp: '0px',
+      subtle: '8px',
+      modern: '16px',
+      curved: '22px',
+      'extra-round': '28px',
+    };
+    root.style.setProperty('--helix-radius', radiusMap[this.settings.windowCornerRadius] || '16px');
+
+    // Inactive window opacity
+    root.style.setProperty('--helix-inactive-opacity', `${(this.settings.windowInactiveOpacity || 95) / 100}`);
+
+    // Blur intensity & Glass opacity
+    root.style.setProperty('--helix-blur', this.settings.enableBlur ? `${this.settings.blurIntensity || 12}px` : '0px');
+    root.style.setProperty('--helix-glass-opacity', `${(this.settings.glassOpacity || 85) / 100}`);
+
+    // Custom Font Family Map
+    const fontMap: Record<string, string> = {
+      system: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      jetbrains: '"JetBrains Mono", monospace',
+      fira: '"Fira Code", monospace',
+      inter: 'Inter, system-ui, sans-serif',
+      outfit: 'Outfit, system-ui, sans-serif',
+      space: '"Space Grotesk", sans-serif',
+      roboto: 'Roboto, sans-serif',
+    };
+    root.style.setProperty('--helix-font-family', fontMap[this.settings.customFontFamily] || fontMap.system);
+
+    // Night Shift Warm Overlay Filter
+    if (this.settings.nightShift === 'warm') {
+      root.style.filter = 'sepia(0.25) saturate(0.95)';
+    } else if (this.settings.nightShift === 'intense') {
+      root.style.filter = 'sepia(0.45) saturate(0.9) hue-rotate(-10deg)';
+    } else if (this.settings.nightShift === 'mild') {
+      root.style.filter = 'sepia(0.12)';
+    } else {
+      root.style.filter = 'none';
+    }
   }
 
   private applyDisplayScalingToDOM(): void {
@@ -701,16 +948,21 @@ export class SettingsService {
       md: '1.0',
       lg: '1.08',
       xl: '1.18',
+      '2xl': '1.30',
     };
     root.style.setProperty('--font-scale', fontScaleMap[this.settings.fontScale] || '1.0');
 
     // UI Display Scaling
     const displayScaleMap: Record<DisplayScale, string> = {
+      '75%': '0.75',
       '80%': '0.80',
       '90%': '0.90',
       '100%': '1.0',
       '110%': '1.10',
       '125%': '1.25',
+      '150%': '1.50',
+      '175%': '1.75',
+      '200%': '2.0',
     };
     root.style.setProperty('--ui-scale', displayScaleMap[this.settings.displayScale] || '1.0');
 

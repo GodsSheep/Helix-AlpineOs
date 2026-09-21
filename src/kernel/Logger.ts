@@ -1,5 +1,5 @@
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'critical';
-export type Subsystem = 'KERNEL' | 'VFS' | 'VM' | 'LINUX' | 'RPC' | 'PTY' | 'APP' | 'NETWORK' | 'SYNC' | 'UPDATE' | 'SECURITY' | 'PWA' | 'REINFORCEMENT';
+export type Subsystem = 'KERNEL' | 'HOST' | 'VFS' | 'VM' | 'LINUX' | 'RPC' | 'PTY' | 'APP' | 'NETWORK' | 'SYNC' | 'UPDATE' | 'SECURITY' | 'PWA' | 'REINFORCEMENT';
 
 export interface LogEntry {
   id: string;
@@ -27,14 +27,15 @@ export class SystemLogger {
     };
     
     this.logs.push(entry);
+    if (this.logs.length > 2000) {
+      this.logs.shift();
+    }
     
-    // Optional console mirror based on dev mode or local storage flag
+    // Console mirror for errors and warnings
     if (level === 'error' || level === 'critical') {
       console.error(`[${subsystem}] ${event}`, details || '');
     } else if (level === 'warn') {
       console.warn(`[${subsystem}] ${event}`, details || '');
-    } else {
-      console.log(`[${subsystem}] ${event}`, details || '');
     }
 
     // Notify listeners

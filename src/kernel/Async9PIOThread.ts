@@ -1,3 +1,5 @@
+import { Kernel } from './index';
+
 // Helix OS Asynchronous I/O Worker Thread for 9P VFS & V86 Integration
 // Decouples host9p mount operations, heavy disk reads/writes, and IndexedDB persistence from the main UI thread.
 
@@ -135,7 +137,7 @@ export class Async9PIOThread {
    * Background I/O Worker Processing Loop
    */
   private startWorkerLoop() {
-    setInterval(() => {
+    setInterval(async () => {
       if (this.queue.length === 0 || this.processing) return;
 
       this.processing = true;
@@ -148,29 +150,30 @@ export class Async9PIOThread {
       req.status = 'processing';
       const startMs = Date.now();
 
-      setTimeout(() => {
+      try {
         if (req.type === 'MOUNT_HOST9P') {
           this.isMounted = true;
           this.lastLog = `[IO-Thread] 9P2000.L virtio host filesystem mounted successfully at ${req.path}`;
-          this.cacheHitCount += 10;
-          this.totalAccessCount += 10;
-        } else if (req.type === 'READ_FILE') {
-          this.readBytes += 2048;
-          this.lastLog = `[IO-Thread] Async background read completed for ${req.path}`;
-          this.cacheHitCount += 1;
-          this.totalAccessCount += 1;
-        } else if (req.type === 'WRITE_FILE') {
-          this.writeBytes += 1024;
-          this.lastLog = `[IO-Thread] Async background write flushed for ${req.path}`;
-          this.totalAccessCount += 1;
+        } else if (req.type === 'READ_FILE' && req.path) {
+          const content = await Kernel.vfs.read(req.path);
+          req.data = content || '';
+          this.readBytes += content?.length || 0;
+          this.lastLog = `[IO-Thread] Real VFS read completed for ${req.path}`;
+        } else if (req.type === 'WRITE_FILE' && req.path) {
+          await Kernel.vfs.write(req.path, req.data);
+          this.writeBytes += req.data.length || 0;
+          this.lastLog = `[IO-Thread] Real VFS write flushed for ${req.path}`;
         }
-
         req.status = 'completed';
-        req.durationMs = Date.now() - startMs;
-        this.completedCount++;
-        this.processing = false;
-        this.notify();
-      }, 50);
+      } catch (e) {
+        req.status = 'failed';
+        this.lastLog = `[IO-Thread] ERROR: VFS operation failed: ${e}`;
+      }
+
+      req.durationMs = Date.now() - startMs;
+      this.completedCount++;
+      this.processing = false;
+      this.notify();
     }, 40);
   }
 }

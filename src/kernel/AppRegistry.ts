@@ -47,6 +47,17 @@ export class AppRegistry {
       iconBg: 'bg-gradient-to-tr from-purple-600/35 to-pink-500/20 border-purple-500/30 text-purple-300'
     },
     {
+      id: 'chroot',
+      title: 'Chroot Sandbox Studio',
+      icon: '🛡️',
+      category: 'System',
+      description: 'POSIX filesystem isolation, rootfs virtualization, multi-distro sandboxing and security audits.',
+      width: 720,
+      height: 520,
+      pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-amber-700/35 to-orange-500/20 border-amber-500/30 text-amber-300'
+    },
+    {
       id: 'mon',
       title: 'System Monitor',
       icon: '📊',
@@ -56,6 +67,17 @@ export class AppRegistry {
       height: 300,
       pinnedToDock: true,
       iconBg: 'bg-gradient-to-tr from-rose-600/30 to-red-400/20 border-rose-500/30 text-rose-300'
+    },
+    {
+      id: 'telemetry',
+      title: 'Kernel Telemetry',
+      icon: '📡',
+      category: 'System',
+      description: 'Real-time container kernel uptime and load average telemetry.',
+      width: 380,
+      height: 200,
+      pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-green-700/30 to-emerald-500/20 border-emerald-500/30 text-green-300'
     },
     {
       id: 'files',
@@ -133,6 +155,17 @@ export class AppRegistry {
       height: 400,
       pinnedToDock: false,
       iconBg: 'bg-gradient-to-tr from-red-600/30 to-orange-400/20 border-red-500/30 text-red-300'
+    },
+    {
+      id: 'kernel-memory',
+      title: 'Kernel Memory Monitor',
+      icon: '🧠',
+      category: 'System',
+      description: 'Live-updated sparkline monitor tracking V8 heap memory pressure, GC frequency, and kernel slab telemetry.',
+      width: 720,
+      height: 520,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-emerald-600/35 to-teal-500/20 border-emerald-500/30 text-emerald-300'
     },
     {
       id: 'sqlclient',
@@ -629,6 +662,116 @@ export class AppRegistry {
       pinnedToDock: true,
       iconBg: 'bg-gradient-to-tr from-rose-600/40 to-pink-500/30 border-rose-500/40 text-rose-200'
     },
+    {
+      id: 'docker',
+      title: 'Docker & Container Studio',
+      icon: '🐳',
+      category: 'Development',
+      description: 'Manage OCI containers, build multi-stage Dockerfiles, inspect images, and exec container shells.',
+      width: 820,
+      height: 580,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-blue-600/40 to-cyan-500/30 border-blue-500/40 text-blue-200'
+    },
+    {
+      id: 'gitstudio',
+      title: 'Git Version Control Studio',
+      icon: '🌿',
+      category: 'Development',
+      description: 'Visual Git DAG commit tree, staging diff viewer, branch manager, stash stack, and remote push/pull.',
+      width: 820,
+      height: 580,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-orange-600/40 to-amber-500/30 border-orange-500/40 text-orange-200'
+    },
+    {
+      id: 'wireshark',
+      title: 'Wireshark Packet Dissector',
+      icon: '🦈',
+      category: 'Utilities',
+      description: 'Real-time packet sniffer, BPF filters, OSI layer dissection, and synchronized hex/ASCII inspector.',
+      width: 840,
+      height: 580,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-cyan-600/40 to-teal-500/30 border-cyan-500/40 text-cyan-200'
+    },
+    {
+      id: 'apistudio',
+      title: 'REST & WebSocket API Studio',
+      icon: '⚡',
+      category: 'Development',
+      description: 'Postman-class HTTP/REST request engine, real-time WebSocket console, headers editor, and cURL generator.',
+      width: 820,
+      height: 580,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-purple-600/40 to-fuchsia-500/30 border-purple-500/40 text-purple-200'
+    },
+    {
+      id: 'kmod',
+      title: 'Kernel Modules & Sysctl',
+      icon: '⚙️',
+      category: 'System',
+      description: 'Loaded kernel modules inspector (lsmod), modprobe/rmmod manager, and sysctl parameter tuner.',
+      width: 760,
+      height: 540,
+      pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-teal-600/40 to-emerald-500/30 border-teal-500/40 text-teal-200'
+    },
+    {
+      id: 'autodetect',
+      title: 'Auto-Detect & System Sync',
+      icon: '📡',
+      category: 'System',
+      description: 'Comprehensive hardware auto-discovery, live connection mesh, package auto-updater, and self-healing audit.',
+      width: 840,
+      height: 600,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-cyan-600/40 to-emerald-500/30 border-cyan-500/40 text-cyan-200'
+    },
+    {
+      id: 'wine-app',
+      title: 'Wine 9.0 Application',
+      icon: '🍷',
+      category: 'Utilities',
+      description: 'Native Win32 Windows application running under Wine 9.0 Pro compatibility layer.',
+      width: 680,
+      height: 480,
+      pinnedToDock: false,
+      iconBg: 'bg-gradient-to-tr from-indigo-700/40 to-purple-600/30 border-indigo-500/40 text-purple-200'
+    },
+    {
+      id: 'helix-ai',
+      title: 'Helix AI Copilot',
+      icon: '🤖',
+      category: 'Development',
+      description: '100% Client-Side AI Copilot running WebGPU/WASM LLMs locally inside your browser container.',
+      width: 720,
+      height: 540,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-purple-600/40 to-indigo-500/30 border-purple-500/40 text-purple-200'
+    },
+    {
+      id: 'p2p-mesh',
+      title: 'P2P Mesh Workspace Sync',
+      icon: '📶',
+      category: 'Utilities',
+      description: 'Decentralized WebRTC peer-to-peer workspace sync for cross-device shared clipboards, file streams, and terminal sessions.',
+      width: 760,
+      height: 520,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-cyan-600/40 to-blue-500/30 border-cyan-500/40 text-cyan-200'
+    },
+    {
+      id: 'apk-bridge',
+      title: 'Android APK Layer',
+      icon: '📱',
+      category: 'Utilities',
+      description: 'Lightweight WASM/Wayland translation bridge for running Android APK packages alongside Linux and Wine apps.',
+      width: 800,
+      height: 580,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-purple-600/40 to-emerald-500/30 border-purple-500/40 text-emerald-200'
+    },
   ];
 
   static get(id: string): AppDefinition | undefined {
@@ -673,11 +816,27 @@ export class AppRegistry {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          this.apps = parsed;
+          const defaultAppIds = new Set(this.apps.map(a => a.id));
+          const validCustomApps = parsed.filter((p: AppDefinition) => p && typeof p.id === 'string' && !defaultAppIds.has(p.id));
+          
+          // Apply custom pin overrides
+          const pinMap = new Map<string, boolean>();
+          for (const item of parsed) {
+            if (item && item.id && typeof item.pinnedToDock === 'boolean') {
+              pinMap.set(item.id, item.pinnedToDock);
+            }
+          }
+
+          this.apps = this.apps.map(app => {
+            if (pinMap.has(app.id)) {
+              return { ...app, pinnedToDock: pinMap.get(app.id)! };
+            }
+            return app;
+          }).concat(validCustomApps);
         }
       }
     } catch {
-      // ignore
+      // ignore non-fatal storage parse errors
     }
   }
 

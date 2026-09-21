@@ -1,5 +1,23 @@
 import { Settings, THEME_PRESETS, FREE_THEME_STORE, HelixTheme, FontScale } from './Settings';
 
+export interface CustomThemeProfile {
+  terminalBg: string;
+  terminalFg: string;
+  terminalCursor: string;
+  terminalPrompt: string;
+  windowBg: string;
+  windowBorder: string;
+  windowHeaderBg: string;
+  windowTitleFg: string;
+  dockBg: string;
+  dockBorder: string;
+  dockActiveDot: string;
+  topBarBg: string;
+  topBarFg: string;
+  accentPrimary: string;
+  accentSecondary: string;
+}
+
 export interface ThemeEngineConfig {
   themeId: string;
   fontScale: FontScale;
@@ -8,6 +26,7 @@ export interface ThemeEngineConfig {
   borderWidthPx: number;
   highContrast: boolean;
   accentColorHex?: string;
+  customProfile?: CustomThemeProfile;
 }
 
 export class ThemeEngineService {
@@ -116,6 +135,12 @@ export class ThemeEngineService {
     this.notify();
   }
 
+  public setCustomProfile(profile: CustomThemeProfile): void {
+    this.currentConfig.customProfile = profile;
+    this.applyToDOM();
+    this.notify();
+  }
+
   /**
    * Applies CSS custom properties to document.documentElement
    */
@@ -133,6 +158,26 @@ export class ThemeEngineService {
     root.style.setProperty('--muted', theme.muted);
     root.style.setProperty('--line', theme.line);
 
+    // Apply custom profile variables if set
+    if (this.currentConfig.customProfile) {
+      const p = this.currentConfig.customProfile;
+      root.style.setProperty('--term-bg', p.terminalBg);
+      root.style.setProperty('--term-fg', p.terminalFg);
+      root.style.setProperty('--term-cursor', p.terminalCursor);
+      root.style.setProperty('--term-prompt', p.terminalPrompt);
+      root.style.setProperty('--win-bg', p.windowBg);
+      root.style.setProperty('--win-border', p.windowBorder);
+      root.style.setProperty('--win-header-bg', p.windowHeaderBg);
+      root.style.setProperty('--win-title-fg', p.windowTitleFg);
+      root.style.setProperty('--dock-bg', p.dockBg);
+      root.style.setProperty('--dock-border', p.dockBorder);
+      root.style.setProperty('--dock-active-dot', p.dockActiveDot);
+      root.style.setProperty('--topbar-bg', p.topBarBg);
+      root.style.setProperty('--topbar-fg', p.topBarFg);
+      root.style.setProperty('--accent-primary', p.accentPrimary);
+      root.style.setProperty('--accent-secondary', p.accentSecondary);
+    }
+
     // Font Scale Multipliers
     const fontScaleMap: Record<FontScale, string> = {
       xs: '0.85',
@@ -140,6 +185,7 @@ export class ThemeEngineService {
       md: '1.0',
       lg: '1.08',
       xl: '1.18',
+      '2xl': '1.30',
     };
     const scaleVal = fontScaleMap[this.currentConfig.fontScale] || '1.0';
     root.style.setProperty('--font-scale', scaleVal);

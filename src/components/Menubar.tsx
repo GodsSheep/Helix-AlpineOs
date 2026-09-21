@@ -14,7 +14,8 @@ import {
   ChevronsUpDown,
   Bell,
   Cpu,
-  Layers
+  Layers,
+  Radio
 } from 'lucide-react';
 import { SystemState } from '../kernel';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -175,6 +176,24 @@ export const Menubar: React.FC<MenubarProps> = ({
             <span className="hidden md:inline">Settings</span>
           </button>
         )}
+
+        <button
+          onClick={() => onOpenApp('autodetect')}
+          className="p-1 sm:px-2 sm:py-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-[#8b93a7] hover:text-white transition flex items-center gap-1.5 cursor-pointer text-xs"
+          title="Auto-Detection, Connection Mesh & Package Sync"
+        >
+          <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+          <span className="hidden lg:inline text-emerald-300 font-mono font-medium">Sync Mesh</span>
+        </button>
+
+        <button
+          onClick={() => onOpenApp('kernel-memory')}
+          className="p-1 sm:px-2 sm:py-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-[#8b93a7] hover:text-white transition flex items-center gap-1.5 cursor-pointer text-xs"
+          title="Kernel Memory Monitor & Live GC Telemetry"
+        >
+          <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+          <span className="hidden xl:inline text-cyan-300 font-mono font-medium">Memory & GC</span>
+        </button>
       </div>
 
       {/* Right items: Space Maximizer, PWA Install, Battery Indicator, WiFi, Quick Settings, Clock */}

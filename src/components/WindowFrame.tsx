@@ -1,6 +1,24 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { WindowInstance, Kernel } from '../kernel';
-import { Minus, Square, X, Copy, Columns2, Menu, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { Settings, HelixSettings } from '../kernel/Settings';
+import { 
+  Minus, 
+  Square, 
+  X, 
+  Copy, 
+  Columns2, 
+  Menu, 
+  ChevronUp, 
+  ChevronDown, 
+  ChevronsUpDown,
+  Grid,
+  Maximize2,
+  Minimize2,
+  AlignCenter,
+  Layers,
+  Sparkles,
+  Move
+} from 'lucide-react';
 
 interface WindowFrameProps {
   win: WindowInstance;
@@ -34,14 +52,21 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [resizeDir, setResizeDir] = useState<string | null>(null);
   const [showSnapMenu, setShowSnapMenu] = useState(false);
+  const [settings, setSettings] = useState<HelixSettings>(Settings.get());
 
   const frameRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ startX: number; startY: number; initX: number; initY: number } | null>(null);
-  const resizeRef = useRef<{ startX: number; startY: number; initW: number; initH: number } | null>(null);
+  const dragRef = useRef<{ startX: number; startY: number; initX: number; initY: number; lastX: number; shakeCount: number; lastShakeDir: number; lastShakeTime: number; startTime: number; pointerType: string } | null>(null);
+  const resizeRef = useRef<{ startX: number; startY: number; initX: number; initY: number; initW: number; initH: number } | null>(null);
   const snapMenuRef = useRef<HTMLDivElement>(null);
   const rafId = useRef<number | null>(null);
 
   const isShaded = !!win.isShaded;
+
+  // Subscribe to Settings
+  useEffect(() => {
+    const unsub = Settings.subscribe((s) => setSettings(s));
+    return unsub;
+  }, []);
 
   // Hold-down (long press) detection on window titlebar
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -99,6 +124,12 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
       startY: e.clientY,
       initX: win.x,
       initY: win.y,
+      lastX: e.clientX,
+      shakeCount: 0,
+      lastShakeDir: 0,
+      lastShakeTime: Date.now(),
+      startTime: Date.now(),
+      pointerType: e.pointerType,
     };
     try {
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -114,6 +145,8 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
     resizeRef.current = {
       startX: e.clientX,
       startY: e.clientY,
+      initX: win.x,
+      initY: win.y,
       initW: win.width,
       initH: win.height,
     };
@@ -132,6 +165,26 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
         }
       }
 
+      // Aero Shake detection
+      if (isDragging && dragRef.current && settings.windowAeroShake) {
+        const cur = dragRef.current;
+        const now = Date.now();
+        const diffX = e.clientX - cur.lastX;
+        if (Math.abs(diffX) > 25 && now - cur.lastShakeTime > 40) {
+          const dir = diffX > 0 ? 1 : -1;
+          if (dir !== cur.lastShakeDir) {
+            cur.shakeCount++;
+            cur.lastShakeDir = dir;
+            cur.lastShakeTime = now;
+            if (cur.shakeCount >= 5) {
+              Kernel.wm.shakeToMinimizeOthers(win.id);
+              cur.shakeCount = 0;
+            }
+          }
+        }
+        cur.lastX = e.clientX;
+      }
+
       if (isDragging && dragRef.current) {
         if (rafId.current) cancelAnimationFrame(rafId.current);
         const curDrag = dragRef.current;
@@ -140,8 +193,20 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
           const dy = e.clientY - curDrag.startY;
           const sw = window.innerWidth;
           const sh = window.innerHeight;
-          const newX = Math.max(0, Math.min(sw - 60, curDrag.initX + dx));
-          const newY = Math.max(42, Math.min(sh - 40, curDrag.initY + dy));
+
+          let newX = curDrag.initX + dx;
+          let newY = curDrag.initY + dy;
+
+          // Edge magnetism snapping if enabled
+          if (settings.windowEdgeMagnetism) {
+            const threshold = settings.windowSnapThreshold || 15;
+            if (Math.abs(newX - 6) < threshold) newX = 6;
+            if (Math.abs(newX + win.width - (sw - 6)) < threshold) newX = sw - win.width - 6;
+            if (Math.abs(newY - 46) < threshold) newY = 46;
+          }
+
+          newX = Math.max(0, Math.min(sw - 60, newX));
+          newY = Math.max(42, Math.min(sh - 40, newY));
           onUpdatePosition(newX, newY);
         });
       }
@@ -155,14 +220,43 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
           const dy = e.clientY - curResize.startY;
           const sw = window.innerWidth;
           const sh = window.innerHeight;
+
           let newW = curResize.initW;
           let newH = curResize.initH;
+          let newX = curResize.initX;
+          let newY = curResize.initY;
+
+          // Aspect ratio multiplier if locked
+          const aspect = settings.windowAspectLock;
+          let ratio: number | null = null;
+          if (aspect === '16:9') ratio = 16 / 9;
+          else if (aspect === '4:3') ratio = 4 / 3;
+          else if (aspect === '16:10') ratio = 16 / 10;
+          else if (aspect === '3:2') ratio = 3 / 2;
 
           if (curDir.includes('e')) {
-            newW = Math.max(260, Math.min(sw - win.x - 8, curResize.initW + dx));
+            newW = Math.max(260, Math.min(sw - curResize.initX - 8, curResize.initW + dx));
+          }
+          if (curDir.includes('w')) {
+            const proposedW = Math.max(260, curResize.initW - dx);
+            newX = curResize.initX + (curResize.initW - proposedW);
+            newW = proposedW;
           }
           if (curDir.includes('s')) {
-            newH = Math.max(140, Math.min(sh - win.y - 64, curResize.initH + dy));
+            newH = Math.max(140, Math.min(sh - curResize.initY - 64, curResize.initH + dy));
+          }
+          if (curDir.includes('n')) {
+            const proposedH = Math.max(140, curResize.initH - dy);
+            newY = curResize.initY + (curResize.initH - proposedH);
+            newH = proposedH;
+          }
+
+          if (ratio !== null) {
+            newH = Math.round(newW / ratio);
+          }
+
+          if (newX !== win.x || newY !== win.y) {
+            onUpdatePosition(newX, newY);
           }
           onUpdateSize(newW, newH);
         });
@@ -179,15 +273,18 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
         const absX = Math.abs(dx);
         const absY = Math.abs(dy);
 
-        // Detect touch swipe gesture on window titlebar
-        if (absX > 75 && absY < 45) {
+        // Detect touch swipe gesture on window titlebar (quick flick only, touch/pen devices)
+        const isTouchFlick = (dragRef.current.pointerType === 'touch' || dragRef.current.pointerType === 'pen') &&
+          (Date.now() - dragRef.current.startTime < 250);
+
+        if (isTouchFlick && absX > 85 && absY < 45) {
           if ('vibrate' in navigator) navigator.vibrate?.(25);
           if (dx > 0) {
             Kernel.wm.snapRight(win.id);
           } else {
             Kernel.wm.snapLeft(win.id);
           }
-        } else if (absY > 75 && absX < 45) {
+        } else if (isTouchFlick && absY > 85 && absX < 45) {
           if ('vibrate' in navigator) navigator.vibrate?.(25);
           if (dy < 0) {
             onMaximize();
@@ -224,9 +321,48 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
       window.removeEventListener('pointercancel', handlePointerUp);
       if (rafId.current) cancelAnimationFrame(rafId.current);
     };
-  }, [isDragging, resizeDir, onUpdatePosition, onUpdateSize, win.x, win.y, cancelHoldDown, isShaded]);
+  }, [isDragging, resizeDir, onUpdatePosition, onUpdateSize, win.x, win.y, win.width, win.height, win.id, cancelHoldDown, isShaded, onMaximize, onToggleShade, settings]);
 
   const isTransforming = isDragging || resizeDir !== null;
+
+  // Titlebar height calculation
+  let titlebarHeightClass = 'h-10 text-xs';
+  let titlebarPx = 40;
+  if (settings.windowTitlebarHeight === 'minimal') {
+    titlebarHeightClass = 'h-7 text-[11px]';
+    titlebarPx = 28;
+  } else if (settings.windowTitlebarHeight === 'compact') {
+    titlebarHeightClass = 'h-8.5 text-[11.5px]';
+    titlebarPx = 34;
+  } else if (settings.windowTitlebarHeight === 'spacious') {
+    titlebarHeightClass = 'h-12 text-sm';
+    titlebarPx = 48;
+  }
+
+  // Corner radius class calculation
+  let radiusClass = 'rounded-2xl';
+  if (settings.windowCornerRadius === 'sharp') radiusClass = 'rounded-none';
+  else if (settings.windowCornerRadius === 'subtle') radiusClass = 'rounded-lg';
+  else if (settings.windowCornerRadius === 'curved') radiusClass = 'rounded-3xl';
+  else if (settings.windowCornerRadius === 'extra-round') radiusClass = 'rounded-[28px]';
+
+  // Border width class calculation
+  let borderClass = 'border';
+  if (settings.windowBorderWidth === 'none') borderClass = 'border-0';
+  else if (settings.windowBorderWidth === '2px') borderClass = 'border-2';
+  else if (settings.windowBorderWidth === '3px') borderClass = 'border-[3px]';
+
+  // Glow calculation
+  let activeGlowClass = 'border-[var(--accent)]/60 shadow-[0_20px_60px_rgba(0,0,0,0.8)] ring-1 ring-[var(--accent)]/30';
+  if (settings.windowGlowEffect === 'none') {
+    activeGlowClass = 'border-[var(--accent)]/40 shadow-xl';
+  } else if (settings.windowGlowEffect === 'subtle') {
+    activeGlowClass = 'border-[var(--accent)]/50 shadow-[0_12px_40px_rgba(0,0,0,0.6)]';
+  } else if (settings.windowGlowEffect === 'high') {
+    activeGlowClass = 'border-[var(--accent)]/80 shadow-[0_25px_80px_rgba(0,0,0,0.9)] ring-2 ring-[var(--accent)]/50';
+  } else if (settings.windowGlowEffect === 'neon') {
+    activeGlowClass = 'border-[var(--accent)] ring-2 ring-[var(--accent)] shadow-[0_0_35px_var(--accent)]';
+  }
 
   // Window Shade / Collapse Style calculations
   let style: React.CSSProperties;
@@ -239,7 +375,7 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
       right: 'env(safe-area-inset-right, 0px)',
       bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
       width: 'calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))',
-      height: isShaded ? '40px' : 'calc(100dvh - 106px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
+      height: isShaded ? `${titlebarPx}px` : 'calc(100dvh - 106px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
       zIndex: win.zIndex,
       display: win.isMinimized ? 'none' : 'flex',
       transform: 'translate3d(0, 0, 0)',
@@ -250,21 +386,30 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
       left: win.x,
       top: win.y,
       width: win.width,
-      height: isShaded ? 40 : win.height,
+      height: isShaded ? titlebarPx : win.height,
       maxWidth: 'calc(100vw - 8px)',
-      maxHeight: isShaded ? 40 : 'calc(100dvh - 100px)',
+      maxHeight: isShaded ? titlebarPx : 'calc(100dvh - 100px)',
       zIndex: win.zIndex,
       display: win.isMinimized ? 'none' : 'flex',
       transform: 'translate3d(0, 0, 0)',
       willChange: isTransforming ? 'left, top, width, height' : 'auto',
+      opacity: isActive ? 1.0 : (settings.windowInactiveOpacity || 95) / 100,
     };
   }
 
   const handleDoubleClick = () => {
-    if (onToggleShade) {
-      onToggleShade();
-    } else {
-      Kernel.wm.toggleShade(win.id);
+    const action = settings.windowTitlebarDoubleClick || 'maximize';
+    if (action === 'maximize') {
+      onMaximize();
+    } else if (action === 'shade') {
+      if (onToggleShade) onToggleShade();
+      else Kernel.wm.toggleShade(win.id);
+    } else if (action === 'center') {
+      Kernel.wm.centerWindow(win.id);
+    } else if (action === 'snap-left') {
+      Kernel.wm.snapLeft(win.id);
+    } else if (action === 'fit-screen') {
+      Kernel.wm.refitWindows();
     }
   };
 
@@ -276,6 +421,8 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
       Kernel.wm.toggleShade(win.id);
     }
   };
+
+  const isMacStyle = settings.windowControlsStyle === 'mac';
 
   return (
     <div
@@ -289,13 +436,13 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
           onOpenAppMenu(e.clientX, e.clientY, win.appId);
         }
       }}
-      className={`bg-[#12141c] rounded-2xl flex flex-col overflow-hidden shadow-2xl border ${
+      className={`bg-[#12141c] ${radiusClass} flex flex-col overflow-hidden ${borderClass} ${
         isTransforming ? 'transition-none pointer-events-auto' : 'transition-all duration-300 ease-in-out'
       } ${
         isActive
-          ? 'border-[var(--accent)]/60 shadow-[0_20px_60px_rgba(0,0,0,0.8)] ring-1 ring-[var(--accent)]/30'
+          ? activeGlowClass
           : 'border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.4)]'
-      } ${isShaded ? 'rounded-b-xl border-b-[var(--accent)]/30' : ''}`}
+      } ${isShaded ? 'border-b-[var(--accent)]/40 shadow-lg' : ''}`}
     >
       {/* Title Bar */}
       <div
@@ -310,10 +457,37 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
             onOpenAppMenu(e.clientX, e.clientY, win.appId);
           }
         }}
-        className={`h-10 px-2 sm:px-3 bg-white/[0.04] border-b border-white/10 flex items-center justify-between cursor-grab active:cursor-grabbing select-none touch-none shrink-0 ${
+        className={`${titlebarHeightClass} px-2 sm:px-3 bg-white/[0.04] border-b border-white/10 flex items-center justify-between cursor-grab active:cursor-grabbing select-none touch-none shrink-0 ${
           isShaded ? 'bg-gradient-to-r from-white/[0.06] via-cyan-950/20 to-white/[0.04]' : ''
         }`}
       >
+        {/* macOS Traffic Lights on Left */}
+        {isMacStyle && (
+          <div className="flex items-center gap-1.5 mr-2 shrink-0">
+            <button
+              onClick={(e) => { e.stopPropagation(); onClose(); }}
+              className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 transition cursor-pointer flex items-center justify-center group"
+              title="Close"
+            >
+              <X className="w-2 h-2 text-black opacity-0 group-hover:opacity-100" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onMinimize(); }}
+              className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-600 transition cursor-pointer flex items-center justify-center group"
+              title="Minimize to Background"
+            >
+              <Minus className="w-2 h-2 text-black opacity-0 group-hover:opacity-100" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onMaximize(); }}
+              className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-600 transition cursor-pointer flex items-center justify-center group"
+              title={win.isMaximized ? 'Restore' : 'Maximize'}
+            >
+              <Maximize2 className="w-2 h-2 text-black opacity-0 group-hover:opacity-100" />
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center gap-1.5 truncate flex-1 min-w-0 mr-2">
           {/* App Menu Trigger Button */}
           <button
@@ -331,13 +505,13 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
             <Menu className="w-3 h-3 opacity-60 hover:opacity-100" />
           </button>
 
-          <span className="text-xs font-semibold text-white tracking-wide truncate">
+          <span className="font-semibold text-white tracking-wide truncate">
             {win.title}
           </span>
 
           {isShaded && (
             <span className="px-1.5 py-0.5 rounded text-[9px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono tracking-tighter shrink-0 animate-pulse">
-              COLLAPSED
+              SHADED
             </span>
           )}
         </div>
@@ -371,111 +545,215 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
             </button>
 
             {showSnapMenu && (
-              <div className="absolute right-0 top-7 w-44 bg-[#161922] border border-white/15 rounded-xl shadow-2xl p-1.5 z-50 text-[11px] space-y-1 backdrop-blur-xl">
+              <div className="absolute right-0 top-7 w-56 bg-[#161922] border border-white/15 rounded-xl shadow-2xl p-2 z-50 text-[11px] space-y-1.5 backdrop-blur-xl animate-fade-in max-h-[440px] overflow-y-auto">
+                <div className="text-[10px] font-mono text-gray-400 px-2 py-0.5 uppercase tracking-wider font-semibold">
+                  Window Snapping & Layout
+                </div>
+
+                <div className="grid grid-cols-2 gap-1">
+                  <button
+                    onClick={() => { Kernel.wm.snapLeft(win.id); setShowSnapMenu(false); }}
+                    className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-left cursor-pointer flex items-center justify-between"
+                  >
+                    <span>◧ Left 50%</span>
+                  </button>
+                  <button
+                    onClick={() => { Kernel.wm.snapRight(win.id); setShowSnapMenu(false); }}
+                    className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-left cursor-pointer flex items-center justify-between"
+                  >
+                    <span>◨ Right 50%</span>
+                  </button>
+                  <button
+                    onClick={() => { Kernel.wm.snapTop(win.id); setShowSnapMenu(false); }}
+                    className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-left cursor-pointer flex items-center justify-between"
+                  >
+                    <span>⬒ Top 50%</span>
+                  </button>
+                  <button
+                    onClick={() => { Kernel.wm.snapBottom(win.id); setShowSnapMenu(false); }}
+                    className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-left cursor-pointer flex items-center justify-between"
+                  >
+                    <span>⬓ Bottom 50%</span>
+                  </button>
+                </div>
+
+                <div className="text-[10px] font-mono text-gray-400 px-2 py-0.5 uppercase tracking-wider font-semibold">
+                  Quadrant Snapping (25%)
+                </div>
+                <div className="grid grid-cols-2 gap-1">
+                  <button
+                    onClick={() => { Kernel.wm.snapQuadrant(win.id, 'tl'); setShowSnapMenu(false); }}
+                    className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-left cursor-pointer"
+                  >
+                    <span>◰ Top-Left</span>
+                  </button>
+                  <button
+                    onClick={() => { Kernel.wm.snapQuadrant(win.id, 'tr'); setShowSnapMenu(false); }}
+                    className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-left cursor-pointer"
+                  >
+                    <span>◲ Top-Right</span>
+                  </button>
+                  <button
+                    onClick={() => { Kernel.wm.snapQuadrant(win.id, 'bl'); setShowSnapMenu(false); }}
+                    className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-left cursor-pointer"
+                  >
+                    <span>◱ Bottom-Left</span>
+                  </button>
+                  <button
+                    onClick={() => { Kernel.wm.snapQuadrant(win.id, 'br'); setShowSnapMenu(false); }}
+                    className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-left cursor-pointer"
+                  >
+                    <span>◳ Bottom-Right</span>
+                  </button>
+                </div>
+
+                <div className="text-[10px] font-mono text-gray-400 px-2 py-0.5 uppercase tracking-wider font-semibold">
+                  Three Columns (33%)
+                </div>
+                <div className="grid grid-cols-3 gap-1">
+                  <button
+                    onClick={() => { Kernel.wm.snapThird(win.id, 'left'); setShowSnapMenu(false); }}
+                    className="px-1.5 py-1 rounded bg-white/5 hover:bg-white/10 text-center cursor-pointer"
+                  >
+                    1/3 Left
+                  </button>
+                  <button
+                    onClick={() => { Kernel.wm.snapThird(win.id, 'center'); setShowSnapMenu(false); }}
+                    className="px-1.5 py-1 rounded bg-white/5 hover:bg-white/10 text-center cursor-pointer"
+                  >
+                    1/3 Mid
+                  </button>
+                  <button
+                    onClick={() => { Kernel.wm.snapThird(win.id, 'right'); setShowSnapMenu(false); }}
+                    className="px-1.5 py-1 rounded bg-white/5 hover:bg-white/10 text-center cursor-pointer"
+                  >
+                    1/3 Right
+                  </button>
+                </div>
+
+                <div className="text-[10px] font-mono text-gray-400 px-2 py-0.5 uppercase tracking-wider font-semibold">
+                  Size Presets
+                </div>
+                <div className="grid grid-cols-2 gap-1">
+                  <button
+                    onClick={() => { Kernel.wm.resizePreset(win.id, 'compact'); setShowSnapMenu(false); }}
+                    className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-left cursor-pointer flex justify-between"
+                  >
+                    <span>Compact</span>
+                    <span className="text-gray-400 text-[10px]">640x440</span>
+                  </button>
+                  <button
+                    onClick={() => { Kernel.wm.resizePreset(win.id, 'standard'); setShowSnapMenu(false); }}
+                    className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-left cursor-pointer flex justify-between"
+                  >
+                    <span>Standard</span>
+                    <span className="text-gray-400 text-[10px]">800x520</span>
+                  </button>
+                  <button
+                    onClick={() => { Kernel.wm.resizePreset(win.id, 'large'); setShowSnapMenu(false); }}
+                    className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-left cursor-pointer flex justify-between"
+                  >
+                    <span>Large</span>
+                    <span className="text-gray-400 text-[10px]">1024x640</span>
+                  </button>
+                  <button
+                    onClick={() => { Kernel.wm.resizePreset(win.id, 'wide'); setShowSnapMenu(false); }}
+                    className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-left cursor-pointer flex justify-between"
+                  >
+                    <span>Wide</span>
+                    <span className="text-gray-400 text-[10px]">1200x700</span>
+                  </button>
+                </div>
+
+                <div className="h-[1px] bg-white/10 my-1" />
+
                 <button
-                  onClick={() => {
-                    Kernel.wm.collapseAllExcept(win.id);
-                    setShowSnapMenu(false);
-                  }}
+                  onClick={() => { Kernel.wm.centerWindow(win.id); setShowSnapMenu(false); }}
+                  className="w-full text-left px-2 py-1 rounded-lg hover:bg-white/10 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <AlignCenter className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Center on Screen</span>
+                </button>
+
+                <button
+                  onClick={() => { Kernel.wm.collapseAllExcept(win.id); setShowSnapMenu(false); }}
                   className="w-full text-left px-2 py-1 rounded-lg hover:bg-white/10 text-cyan-300 flex items-center justify-between cursor-pointer"
                   title="Collapse all other windows for maximum focus"
                 >
                   <span className="flex items-center gap-1.5">
                     <ChevronsUpDown className="w-3.5 h-3.5" />
-                    <span>Focus / Solo</span>
+                    <span>Focus Solo (Aero)</span>
                   </span>
-                  <span className="text-[10px] text-gray-400 font-mono">100%</span>
                 </button>
 
-                <div className="h-[1px] bg-white/10 my-1" />
-
                 <button
-                  onClick={() => {
-                    Kernel.wm.snapLeft(win.id);
-                    setShowSnapMenu(false);
-                  }}
-                  className="w-full text-left px-2 py-1 rounded-lg hover:bg-white/10 flex items-center justify-between cursor-pointer"
-                >
-                  <span>Snap Left</span>
-                  <span className="text-gray-400">50%</span>
-                </button>
-                <button
-                  onClick={() => {
-                    Kernel.wm.snapRight(win.id);
-                    setShowSnapMenu(false);
-                  }}
-                  className="w-full text-left px-2 py-1 rounded-lg hover:bg-white/10 flex items-center justify-between cursor-pointer"
-                >
-                  <span>Snap Right</span>
-                  <span className="text-gray-400">50%</span>
-                </button>
-                <button
-                  onClick={() => {
-                    Kernel.wm.centerWindow(win.id);
-                    setShowSnapMenu(false);
-                  }}
-                  className="w-full text-left px-2 py-1 rounded-lg hover:bg-white/10 cursor-pointer"
-                >
-                  Center Window
-                </button>
-                <div className="h-[1px] bg-white/10 my-1" />
-                <button
-                  onClick={() => {
-                    Kernel.wm.tileAllWindows();
-                    setShowSnapMenu(false);
-                  }}
+                  onClick={() => { Kernel.wm.tileAllWindows(); setShowSnapMenu(false); }}
                   className="w-full text-left px-2 py-1 rounded-lg hover:bg-white/10 text-[#6ee7b7] cursor-pointer flex items-center justify-between"
                 >
-                  <span>Tile All Windows</span>
+                  <span className="flex items-center gap-1.5">
+                    <Grid className="w-3.5 h-3.5" />
+                    <span>Tile All Windows</span>
+                  </span>
                   <span className="text-[10px] text-gray-400">Auto</span>
                 </button>
+
                 <button
-                  onClick={() => {
-                    Kernel.wm.shadeAll();
-                    setShowSnapMenu(false);
-                  }}
+                  onClick={() => { Kernel.wm.cascadeAllWindows(); setShowSnapMenu(false); }}
+                  className="w-full text-left px-2 py-1 rounded-lg hover:bg-white/10 text-purple-300 cursor-pointer flex items-center justify-between"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>Cascade All</span>
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => { Kernel.wm.shadeAll(); setShowSnapMenu(false); }}
                   className="w-full text-left px-2 py-1 rounded-lg hover:bg-white/10 text-amber-300 cursor-pointer flex items-center justify-between"
                 >
-                  <span>Collapse All</span>
-                  <span className="text-[10px] text-gray-400">Shade</span>
+                  <span>Collapse / Shade All</span>
                 </button>
               </div>
             )}
           </div>
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onMinimize();
-            }}
-            className="px-1.5 h-6 rounded-md hover:bg-white/10 text-[#8b93a7] hover:text-[#6ee7b7] flex items-center gap-1 transition cursor-pointer text-[10px]"
-            title="Add to Background"
-          >
-            <Minus className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Background</span>
-          </button>
+          {!isMacStyle && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMinimize();
+                }}
+                className="px-1.5 h-6 rounded-md hover:bg-white/10 text-[#8b93a7] hover:text-[#6ee7b7] flex items-center gap-1 transition cursor-pointer text-[10px]"
+                title="Add to Background"
+              >
+                <Minus className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Background</span>
+              </button>
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onMaximize();
-            }}
-            className="w-6 h-6 rounded-md hover:bg-white/10 text-[#8b93a7] hover:text-white flex items-center justify-center transition cursor-pointer"
-            title={win.isMaximized ? 'Restore' : 'Maximize'}
-          >
-            {win.isMaximized ? <Copy className="w-3 h-3" /> : <Square className="w-3 h-3" />}
-          </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMaximize();
+                }}
+                className="w-6 h-6 rounded-md hover:bg-white/10 text-[#8b93a7] hover:text-white flex items-center justify-center transition cursor-pointer"
+                title={win.isMaximized ? 'Restore' : 'Maximize'}
+              >
+                {win.isMaximized ? <Copy className="w-3 h-3" /> : <Square className="w-3 h-3" />}
+              </button>
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className="w-6 h-6 rounded-md hover:bg-[#ff6b7a] text-[#8b93a7] hover:text-white flex items-center justify-center transition cursor-pointer"
-            title="Close"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose();
+                }}
+                className="w-6 h-6 rounded-md hover:bg-[#ff6b7a] text-[#8b93a7] hover:text-white flex items-center justify-center transition cursor-pointer"
+                title="Close"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -486,7 +764,7 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
         </div>
       )}
 
-      {/* Resize Handles (Only active when not maximized and not shaded) */}
+      {/* 8-Direction Resize Handles (Only active when not maximized and not shaded) */}
       {!win.isMaximized && !isShaded && (
         <>
           {/* East edge */}
@@ -494,10 +772,20 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
             onPointerDown={(e) => handleResizePointerDown('e', e)}
             className="absolute top-10 right-0 w-3 bottom-3 cursor-ew-resize z-40 hover:bg-[#6ee7b7]/20 transition-colors touch-none"
           />
+          {/* West edge */}
+          <div
+            onPointerDown={(e) => handleResizePointerDown('w', e)}
+            className="absolute top-10 left-0 w-3 bottom-3 cursor-ew-resize z-40 hover:bg-[#6ee7b7]/20 transition-colors touch-none"
+          />
           {/* South edge */}
           <div
             onPointerDown={(e) => handleResizePointerDown('s', e)}
             className="absolute bottom-0 left-3 right-3 h-3 cursor-ns-resize z-40 hover:bg-[#6ee7b7]/20 transition-colors touch-none"
+          />
+          {/* North edge */}
+          <div
+            onPointerDown={(e) => handleResizePointerDown('n', e)}
+            className="absolute top-0 left-3 right-3 h-2 cursor-ns-resize z-40 hover:bg-[#6ee7b7]/20 transition-colors touch-none"
           />
           {/* South-East corner handle */}
           <div
@@ -507,9 +795,23 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
           >
             <div className="w-2.5 h-2.5 border-r-2 border-b-2 border-gray-400/60 group-hover:border-[#6ee7b7] group-active:border-[#6ee7b7] transition-colors" />
           </div>
+          {/* South-West corner handle */}
+          <div
+            onPointerDown={(e) => handleResizePointerDown('sw', e)}
+            className="absolute bottom-0 left-0 w-5 h-5 cursor-nesw-resize z-50 touch-none"
+          />
+          {/* North-East corner handle */}
+          <div
+            onPointerDown={(e) => handleResizePointerDown('ne', e)}
+            className="absolute top-0 right-0 w-5 h-5 cursor-nesw-resize z-50 touch-none"
+          />
+          {/* North-West corner handle */}
+          <div
+            onPointerDown={(e) => handleResizePointerDown('nw', e)}
+            className="absolute top-0 left-0 w-5 h-5 cursor-nwse-resize z-50 touch-none"
+          />
         </>
       )}
     </div>
   );
 };
-

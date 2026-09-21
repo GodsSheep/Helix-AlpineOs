@@ -74,7 +74,7 @@ root.geometry("460x360")
 header = tk.Label(root, text="Helix OS Realtime Hardware Monitor", font=("Arial", 14, "bold"))
 cpu_lbl = tk.Label(root, text="CPU: Intel(R) Core(TM) Architecture (2.40 GHz)")
 mem_lbl = tk.Label(root, text="RAM: 47MiB / 256MiB (Alpine Guest)")
-uptime_lbl = tk.Label(root, text="Host: Linux helix-alpine 6.6.14-virt")
+uptime_lbl = tk.Label(root, text="Host: Linux helix-debian 6.6.14-virt")
 
 slider_fan = tk.Scale(root, from_=20, to=100, label="Fan Speed RPM (%)")
 chk_turbo = tk.Checkbutton(root, text="Enable JIT Turbo Governor")

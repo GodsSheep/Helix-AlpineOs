@@ -58,7 +58,20 @@ export type AppId =
   | 'crossplatform'
   | 'pythonengine'
   | 'pythonarcade'
-  | 'trash';
+  | 'telemetry'
+  | 'trash'
+  | 'docker'
+  | 'gitstudio'
+  | 'wireshark'
+  | 'apistudio'
+  | 'kmod'
+  | 'autodetect'
+  | 'kernel-memory'
+  | 'wine-app'
+  | 'helix-ai'
+  | 'p2p-mesh'
+  | 'apk-bridge'
+  | 'chroot';
 
 declare global {
   interface Window {

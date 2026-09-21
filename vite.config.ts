@@ -412,8 +412,7 @@ export default defineConfig(() => {
               ],
             },
             devOptions: {
-              enabled: true,
-              type: 'module',
+              enabled: false,
             },
         })
     ],
@@ -423,9 +422,13 @@ export default defineConfig(() => {
       },
     },
     server: {
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modify - file watching is disabled to prevent flickering during agent edits.
-      hmr: process.env.DISABLE_HMR !== 'true',
+      // Disable forwardConsole to prevent ws.send undefined crashes on early client-side logs or errors
+      forwardConsole: false,
+      // HMR is enabled safely with the error overlay disabled. We disable file watching
+      // when DISABLE_HMR is 'true' to save CPU and prevent flickering during agent edits.
+      hmr: {
+        overlay: false,
+      },
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },

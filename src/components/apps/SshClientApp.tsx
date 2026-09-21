@@ -23,13 +23,13 @@ export const SshClientApp: React.FC = () => {
   const [selectedHost, setSelectedHost] = useState<SshHost | null>(DEFAULT_HOSTS[0]);
   const [activeSession, setActiveSession] = useState<{ host: SshHost; logs: string[] } | null>(null);
   const [cmdInput, setCmdInput] = useState('');
-  const [pubKey, setPubKey] = useState('ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIn5hWp9xZ2Jk60hBf2qL7K1P3mV6uYzAlpineHelix01 root@helix-alpine');
+  const [pubKey, setPubKey] = useState('ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIn5hWp9xZ2Jk60hBf2qL7K1P3mV6uYzAlpineHelix01 root@helix-debian');
   const [copiedKey, setCopiedKey] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
 
   const handleGenerateKey = (type: 'ed25519' | 'rsa') => {
     const randomHex = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-    const newKey = `ssh-${type} AAAAB3NzaC1yc2EA${randomHex.toUpperCase()} root@helix-alpine-${Date.now().toString().slice(-4)}`;
+    const newKey = `ssh-${type} AAAAB3NzaC1yc2EA${randomHex.toUpperCase()} root@helix-debian-${Date.now().toString().slice(-4)}`;
     setPubKey(newKey);
     Toast.show(`Generated new OpenSSH ${type.toUpperCase()} keypair`, '🔑');
   };

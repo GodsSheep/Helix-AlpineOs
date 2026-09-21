@@ -5,7 +5,7 @@ import { SoundManager } from '../../kernel/SoundManager';
 
 export const HexEditorApp: React.FC = () => {
   const [filePath, setFilePath] = useState('/etc/hostname');
-  const [fileContent, setFileContent] = useState('helix-alpine\n');
+  const [fileContent, setFileContent] = useState('helix-debian\n');
   const [hexBytes, setHexBytes] = useState<number[]>([]);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);

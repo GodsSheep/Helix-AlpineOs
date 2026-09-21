@@ -8,6 +8,9 @@ export const NeofetchApp: React.FC = () => {
   const [hwInfo, setHwInfo] = useState(Kernel.settings.getHardwareInfo());
   const [uptime, setUptime] = useState('0 mins');
 
+  const osMeta = Kernel.vm.getOsMetadata();
+  const hostname = Kernel.vm.getHostname();
+
   useEffect(() => {
     const updateStats = () => {
       setHwInfo(Kernel.settings.getHardwareInfo());
@@ -37,10 +40,12 @@ export const NeofetchApp: React.FC = () => {
   ];
 
   const sysInfo = [
-    { label: 'OS', value: 'Helix OS 4.5 (Alpine Linux 3.20.0 x86_64)' },
+    { label: 'OS', value: `Helix OS 4.5 (${osMeta.name} ${osMeta.version} x86_64)` },
     { label: 'Kernel', value: 'Linux 6.6.14-virt-helix (SMP x86_64 JIT)' },
+    { label: 'Hostname', value: hostname },
+    { label: 'Tagline', value: osMeta.tagline },
     { label: 'Uptime', value: uptime },
-    { label: 'Packages', value: '18,452 (apk repo active)' },
+    { label: 'Packages', value: '18,452 (package manager active)' },
     { label: 'Shell', value: 'busybox ash 1.36.1 with RPC bus' },
     { label: 'Resolution', value: `${window.innerWidth}x${window.innerHeight} viewport` },
     { label: 'DE / WM', value: 'Helix Compositor (WebAssembly / Canvas / 9P)' },
@@ -64,7 +69,7 @@ export const NeofetchApp: React.FC = () => {
       <div className="flex justify-between items-center pb-3 border-b border-white/10 shrink-0">
         <div className="flex items-center gap-2">
           <Terminal className="w-4 h-4 text-[#6ee7b7]" />
-          <span className="font-bold text-sm text-[#6ee7b7]">neofetch — Helix System Profiler</span>
+          <span className="font-bold text-sm text-[#6ee7b7]">neofetch — Helix System Profiler ({osMeta.name})</span>
         </div>
         <button
           onClick={handleCopy}
@@ -81,13 +86,13 @@ export const NeofetchApp: React.FC = () => {
           {asciiLogo.map((line, idx) => (
             <pre key={idx} className="font-mono">{line}</pre>
           ))}
-          <div className="text-center font-bold text-xs text-cyan-400 mt-2">ALPINE LINUX</div>
+          <div className="text-center font-bold text-xs text-cyan-400 mt-2 uppercase">{osMeta.name}</div>
         </div>
 
         {/* Specs Table */}
         <div className="flex-1 space-y-1.5 w-full">
           <div className="text-sm font-bold text-emerald-400 border-b border-white/10 pb-1 mb-2">
-            root@helix-alpine ~
+            root@{hostname} ~
           </div>
 
           {sysInfo.map((item, idx) => (

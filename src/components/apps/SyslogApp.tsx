@@ -1,75 +1,209 @@
-import React, { useState } from 'react';
-import { FileText, Search, RefreshCw, Filter, ShieldAlert, Info, AlertTriangle, PanelLeftClose, PanelLeft, Trash2, Pause, Play, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  FileText, 
+  Search, 
+  RefreshCw, 
+  ShieldAlert, 
+  PanelLeftClose, 
+  PanelLeft, 
+  Trash2, 
+  Pause, 
+  Play, 
+  Download, 
+  Copy, 
+  Check, 
+  Shield, 
+  Activity, 
+  AlertOctagon,
+  Sparkles
+} from 'lucide-react';
 import { Toast } from '../../kernel/Toast';
+import { Kernel } from '../../kernel';
+import { SystemErrorReport } from '../../kernel/Errors';
+import { LogEntry as KernelLogEntry } from '../../kernel/Logger';
 
-interface LogEntry {
-  id: number;
+interface FormattedLog {
+  id: string;
   timestamp: string;
   source: string;
-  facility: 'kern' | 'auth' | 'daemon' | 'syslog' | 'cron';
+  facility: 'kern' | 'auth' | 'daemon' | 'syslog' | 'cron' | 'app' | 'host' | 'vfs';
   level: 'info' | 'warn' | 'error' | 'success';
   message: string;
+  details?: any;
 }
 
 export const SyslogApp: React.FC = () => {
-  const [logs, setLogs] = useState<LogEntry[]>([
-    { id: 1, timestamp: '[0.000000]', source: 'kernel', facility: 'kern', level: 'info', message: 'Linux version 6.6.21-alpine-v86 (gcc 13.2.1) #1 SMP PREEMPT_DYNAMIC' },
-    { id: 2, timestamp: '[0.142000]', source: 'init', facility: 'syslog', level: 'success', message: 'Mounted root filesystem (vfs) read-write successfully.' },
-    { id: 3, timestamp: '[0.420102]', source: 'udevd', facility: 'daemon', level: 'info', message: 'version 3.2.14 started. Device hotplug daemon active.' },
-    { id: 4, timestamp: '[1.024500]', source: 'rc-service', facility: 'syslog', level: 'success', message: 'service network started successfully (eth0: 192.168.1.145)' },
-    { id: 5, timestamp: '[1.890120]', source: 'sshd', facility: 'auth', level: 'warn', message: 'Server listening on 0.0.0.0 port 22 (RSA key fingerprint verified)' },
-    { id: 6, timestamp: '[2.410990]', source: 'kernel', facility: 'kern', level: 'info', message: 'v86 hardware acceleration initialized (WebAssembly JIT active)' },
-    { id: 7, timestamp: '[3.124500]', source: 'helix-wm', facility: 'daemon', level: 'success', message: 'Helix DE Wayland compositor launched on display :0' },
-    { id: 8, timestamp: '[4.001920]', source: 'crond', facility: 'cron', level: 'info', message: 'crond (busybox 1.36.1) started, log level 5' },
+  const [logs, setLogs] = useState<FormattedLog[]>([
+    { id: 'boot-1', timestamp: '[0.000000]', source: 'kernel', facility: 'kern', level: 'info', message: 'Linux version 6.6.21-alpine-v86 (gcc 13.2.1) #1 SMP PREEMPT_DYNAMIC' },
+    { id: 'boot-2', timestamp: '[0.142000]', source: 'init', facility: 'syslog', level: 'success', message: 'Mounted root filesystem (vfs) read-write successfully.' },
+    { id: 'boot-3', timestamp: '[0.420102]', source: 'udevd', facility: 'daemon', level: 'info', message: 'version 3.2.14 started. Device hotplug daemon active.' },
+    { id: 'boot-4', timestamp: '[1.024500]', source: 'rc-service', facility: 'syslog', level: 'success', message: 'service network started successfully (eth0: 192.168.1.145)' },
+    { id: 'boot-5', timestamp: '[1.890120]', source: 'sshd', facility: 'auth', level: 'warn', message: 'Server listening on 0.0.0.0 port 22 (RSA key fingerprint verified)' },
+    { id: 'boot-6', timestamp: '[2.410990]', source: 'kernel', facility: 'kern', level: 'info', message: 'v86 hardware acceleration initialized (WebAssembly JIT active)' },
+    { id: 'boot-7', timestamp: '[3.124500]', source: 'helix-wm', facility: 'daemon', level: 'success', message: 'Helix DE Wayland compositor launched on display :0' },
   ]);
+
   const [selectedFacility, setSelectedFacility] = useState<string>('all');
   const [filterLevel, setFilterLevel] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<FormattedLog | null>(null);
+
+  // Subscribe to live Kernel Logger & Kernel Error Manager
+  useEffect(() => {
+    // 1. Ingest existing logger entries
+    if (Kernel.logger) {
+      const existing = Kernel.logger.getLogs();
+      const mapped: FormattedLog[] = existing.map((l: KernelLogEntry) => ({
+        id: l.id,
+        timestamp: `[${((l.timestamp - performance.timeOrigin) / 1000).toFixed(3)}]`,
+        source: l.subsystem.toLowerCase(),
+        facility: mapSubsystemToFacility(l.subsystem),
+        level: l.level === 'critical' ? 'error' : (l.level as any),
+        message: l.event,
+        details: l.details,
+      }));
+      if (mapped.length > 0) {
+        setLogs((prev) => [...mapped, ...prev]);
+      }
+    }
+
+    // 2. Subscribe to live logger entries
+    const unsubLogger = Kernel.logger?.subscribe((entry: KernelLogEntry) => {
+      if (isPaused) return;
+      const formatted: FormattedLog = {
+        id: entry.id,
+        timestamp: `[${((entry.timestamp - performance.timeOrigin) / 1000).toFixed(3)}]`,
+        source: entry.subsystem.toLowerCase(),
+        facility: mapSubsystemToFacility(entry.subsystem),
+        level: entry.level === 'critical' ? 'error' : (entry.level as any),
+        message: entry.event,
+        details: entry.details,
+      };
+      setLogs((prev) => [formatted, ...prev.slice(0, 400)]);
+    });
+
+    // 3. Subscribe to live error manager reports
+    const unsubErrors = Kernel.errors?.subscribe((err: SystemErrorReport) => {
+      if (isPaused) return;
+      const formatted: FormattedLog = {
+        id: err.id,
+        timestamp: `[${((err.timestamp - performance.timeOrigin) / 1000).toFixed(3)}]`,
+        source: err.subsystem.toLowerCase(),
+        facility: 'kern',
+        level: 'error',
+        message: `[${err.code}] ${err.message}`,
+        details: { stack: err.stack, details: err.details },
+      };
+      setLogs((prev) => [formatted, ...prev.slice(0, 400)]);
+    });
+
+    return () => {
+      unsubLogger?.();
+      unsubErrors?.();
+    };
+  }, [isPaused]);
+
+  const mapSubsystemToFacility = (sub: string): FormattedLog['facility'] => {
+    switch (sub) {
+      case 'KERNEL': return 'kern';
+      case 'SECURITY': return 'auth';
+      case 'HOST': return 'host';
+      case 'VFS': return 'vfs';
+      case 'APP': return 'app';
+      case 'LINUX':
+      case 'VM': return 'daemon';
+      default: return 'syslog';
+    }
+  };
 
   const addTestLog = () => {
     const levels: ('info' | 'warn' | 'error' | 'success')[] = ['info', 'warn', 'error', 'success'];
-    const facilities: ('kern' | 'auth' | 'daemon' | 'syslog' | 'cron')[] = ['kern', 'auth', 'daemon', 'syslog', 'cron'];
+    const facilities: FormattedLog['facility'][] = ['kern', 'auth', 'daemon', 'syslog', 'host', 'vfs', 'app'];
     const lvl = levels[Math.floor(Math.random() * levels.length)];
     const fac = facilities[Math.floor(Math.random() * facilities.length)];
-    const newLog: LogEntry = {
-      id: Date.now(),
+    const newLog: FormattedLog = {
+      id: Math.random().toString(36).substring(2, 9),
       timestamp: `[${(performance.now() / 1000).toFixed(3)}]`,
       source: `${fac}-worker`,
       facility: fac,
       level: lvl,
-      message: `System diagnostic check (${fac}): memory buffer page sync finished with status code ${Math.floor(Math.random() * 300)}`
+      message: `Diagnostic telemetry event (${fac}): memory buffer sync status code ${Math.floor(Math.random() * 300)}`
     };
-    setLogs(prev => [newLog, ...prev]);
-    Toast.show(`Simulated ${lvl.toUpperCase()} event generated in ${fac}.log`, '✓');
+    setLogs((prev) => [newLog, ...prev]);
+    Toast.show(`Generated ${lvl.toUpperCase()} event in ${fac}.log`, '✓');
   };
 
   const handleClear = () => {
     setLogs([]);
+    Kernel.errors?.clearErrors();
     Toast.show('Kernel ring buffer logs cleared', '🗑️');
   };
 
+  const handleExport = (format: 'txt' | 'json') => {
+    let content = '';
+    let mime = 'text/plain';
+    let filename = `helix-syslog-${Date.now()}.${format}`;
+
+    if (format === 'json') {
+      content = JSON.stringify(logs, null, 2);
+      mime = 'application/json';
+    } else {
+      content = logs.map((l) => `${l.timestamp} [${l.facility.toUpperCase()}] [${l.level.toUpperCase()}] ${l.source}: ${l.message}`).join('\n');
+    }
+
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    Toast.show(`Exported syslog to ${filename}`, '💾');
+  };
+
+  const handleCopyAll = async () => {
+    const text = logs.map((l) => `${l.timestamp} [${l.level.toUpperCase()}] ${l.source}: ${l.message}`).join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      setIsCopied(true);
+      Toast.show('Copied logs to clipboard', '📋');
+      setTimeout(() => setIsCopied(false), 2500);
+    } catch {
+      Toast.show('Failed to copy logs', '⚠️');
+    }
+  };
+
   const facilitiesList = [
-    { id: 'all', label: 'All Log Facilities', count: logs.length },
-    { id: 'kern', label: 'dmesg (Kernel Ring)', count: logs.filter(l => l.facility === 'kern').length },
-    { id: 'syslog', label: 'syslog / systemd', count: logs.filter(l => l.facility === 'syslog').length },
-    { id: 'auth', label: 'auth.log (Security)', count: logs.filter(l => l.facility === 'auth').length },
-    { id: 'daemon', label: 'daemon.log (Services)', count: logs.filter(l => l.facility === 'daemon').length },
-    { id: 'cron', label: 'cron.log (Scheduled)', count: logs.filter(l => l.facility === 'cron').length },
+    { id: 'all', label: 'All Log Streams', count: logs.length },
+    { id: 'kern', label: 'dmesg (Kernel Ring)', count: logs.filter((l) => l.facility === 'kern').length },
+    { id: 'host', label: 'Host Kernel Bridge', count: logs.filter((l) => l.facility === 'host').length },
+    { id: 'vfs', label: 'VFS Storage Subsystem', count: logs.filter((l) => l.facility === 'vfs').length },
+    { id: 'app', label: 'GUI App Exceptions', count: logs.filter((l) => l.facility === 'app').length },
+    { id: 'syslog', label: 'syslog / systemd', count: logs.filter((l) => l.facility === 'syslog').length },
+    { id: 'auth', label: 'auth.log (Security)', count: logs.filter((l) => l.facility === 'auth').length },
+    { id: 'daemon', label: 'daemon.log (Services)', count: logs.filter((l) => l.facility === 'daemon').length },
   ];
 
-  const filtered = logs.filter(l => {
+  const filtered = logs.filter((l) => {
     if (selectedFacility !== 'all' && l.facility !== selectedFacility) return false;
     if (filterLevel !== 'all' && l.level !== filterLevel) return false;
-    if (searchTerm && !l.message.toLowerCase().includes(searchTerm.toLowerCase()) && !l.source.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    if (
+      searchTerm &&
+      !l.message.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      !l.source.toLowerCase().includes(searchTerm.toLowerCase())
+    ) {
+      return false;
+    }
     return true;
   });
 
   return (
     <div className="h-full flex flex-col bg-[#12141c] text-[#edf1f7] text-xs select-none overflow-hidden font-sans">
       {/* Toolbar */}
-      <div className="px-3 py-2 bg-[#181b26] border-b border-white/10 flex items-center justify-between gap-2 shrink-0">
+      <div className="px-3 py-2 bg-[#181b26] border-b border-white/10 flex flex-wrap items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowSidebar(!showSidebar)}
@@ -81,25 +215,44 @@ export const SyslogApp: React.FC = () => {
             {showSidebar ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
           </button>
           <FileText className="w-4 h-4 text-cyan-400" />
-          <span className="font-semibold text-white">System Kernel Log Viewer (`dmesg` / `syslog`)</span>
+          <span className="font-semibold text-white font-mono">System Kernel & Error Log Viewer</span>
         </div>
+
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsPaused(!isPaused)}
-            className={`px-2.5 py-1 rounded-lg border transition cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2.5 py-1 rounded-lg border transition cursor-pointer flex items-center gap-1.5 font-mono ${
               isPaused ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-white/5 hover:bg-white/10 text-gray-300 border-white/10'
             }`}
             title={isPaused ? 'Resume live log stream' : 'Pause live log stream'}
           >
-            {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-            <span>{isPaused ? 'Paused' : 'Streaming'}</span>
+            {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5 text-emerald-400" />}
+            <span>{isPaused ? 'Paused' : 'Live Streaming'}</span>
           </button>
+
+          <button
+            onClick={handleCopyAll}
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition cursor-pointer"
+            title="Copy All Filtered Logs"
+          >
+            {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+          </button>
+
+          <button
+            onClick={() => handleExport('txt')}
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition cursor-pointer"
+            title="Export as .txt"
+          >
+            <Download className="w-3.5 h-3.5" />
+          </button>
+
           <button
             onClick={addTestLog}
-            className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-medium transition cursor-pointer"
+            className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-medium transition cursor-pointer font-mono"
           >
             Simulate Event
           </button>
+
           <button
             onClick={handleClear}
             className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition cursor-pointer"
@@ -113,7 +266,7 @@ export const SyslogApp: React.FC = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Facilities Sidebar */}
         {showSidebar && (
-          <div className="w-60 bg-[#0f111a] border-r border-white/10 flex flex-col p-2 space-y-1 shrink-0 overflow-y-auto font-mono text-[11px]">
+          <div className="w-64 bg-[#0f111a] border-r border-white/10 flex flex-col p-2 space-y-1 shrink-0 overflow-y-auto font-mono text-[11px]">
             <div className="text-[10px] uppercase text-gray-500 font-bold px-2 py-1">Log Channels & Facilities</div>
             {facilitiesList.map((fac) => (
               <button
@@ -184,7 +337,7 @@ export const SyslogApp: React.FC = () => {
               <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search kernel logs, syslog events, daemon messages..."
+                placeholder="Search live kernel logs, error stack traces, daemon messages..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full bg-black/50 border border-white/15 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono"
@@ -195,25 +348,39 @@ export const SyslogApp: React.FC = () => {
           {/* Log Output Stream */}
           <div className="flex-1 p-3 font-mono text-[11px] overflow-y-auto space-y-1">
             {filtered.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">No log entries match the selected filters</div>
+              <div className="p-8 text-center text-gray-500 font-mono">No log entries match the selected filters</div>
             ) : (
               filtered.map((log) => (
-                <div key={log.id} className="flex items-start gap-2 leading-relaxed p-1.5 rounded hover:bg-white/5 transition">
-                  <span className="text-gray-500 shrink-0 select-text">{log.timestamp}</span>
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 uppercase ${
-                    log.level === 'success' ? 'bg-[#6ee7b7]/20 text-[#6ee7b7]' :
-                    log.level === 'warn' ? 'bg-amber-500/20 text-amber-400' :
-                    log.level === 'error' ? 'bg-red-500/20 text-red-400' : 'bg-cyan-500/20 text-cyan-300'
-                  }`}>
-                    {log.source}
-                  </span>
-                  <span className={`flex-1 select-text ${
-                    log.level === 'error' ? 'text-red-300 font-bold' :
-                    log.level === 'warn' ? 'text-amber-200' :
-                    log.level === 'success' ? 'text-emerald-200' : 'text-gray-200'
-                  }`}>
-                    {log.message}
-                  </span>
+                <div 
+                  key={log.id} 
+                  onClick={() => setSelectedLog(selectedLog?.id === log.id ? null : log)}
+                  className={`flex flex-col p-1.5 rounded hover:bg-white/5 transition cursor-pointer border ${
+                    selectedLog?.id === log.id ? 'border-cyan-500/40 bg-cyan-500/10' : 'border-transparent'
+                  }`}
+                >
+                  <div className="flex items-start gap-2 leading-relaxed">
+                    <span className="text-gray-500 shrink-0 select-text">{log.timestamp}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 uppercase ${
+                      log.level === 'success' ? 'bg-[#6ee7b7]/20 text-[#6ee7b7]' :
+                      log.level === 'warn' ? 'bg-amber-500/20 text-amber-400' :
+                      log.level === 'error' ? 'bg-red-500/20 text-red-400' : 'bg-cyan-500/20 text-cyan-300'
+                    }`}>
+                      {log.source}
+                    </span>
+                    <span className={`flex-1 select-text ${
+                      log.level === 'error' ? 'text-red-300 font-bold' :
+                      log.level === 'warn' ? 'text-amber-200' :
+                      log.level === 'success' ? 'text-emerald-200' : 'text-gray-200'
+                    }`}>
+                      {log.message}
+                    </span>
+                  </div>
+
+                  {log.details && selectedLog?.id === log.id && (
+                    <div className="mt-2 p-2.5 bg-black/60 rounded-lg text-gray-300 text-[10px] font-mono select-text border border-white/10 overflow-x-auto">
+                      <pre>{typeof log.details === 'object' ? JSON.stringify(log.details, null, 2) : String(log.details)}</pre>
+                    </div>
+                  )}
                 </div>
               ))
             )}

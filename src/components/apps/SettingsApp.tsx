@@ -52,9 +52,20 @@ import {
   FileText,
   Flame,
   Clock,
-  Trash2
+  Trash2,
+  AppWindow,
+  Bell
 } from 'lucide-react';
 import { fetchAndValidateBiosRom, verifyBiosBufferIntegrity, KNOWN_BIOS_SIGNATURES } from '../../kernel/BiosValidator';
+import { WindowSettingsTab } from './settings/WindowSettingsTab';
+import { AudioSettingsTab } from './settings/AudioSettingsTab';
+import { TerminalSettingsTab } from './settings/TerminalSettingsTab';
+import { DockSettingsTab } from './settings/DockSettingsTab';
+import { TopBarSettingsTab } from './settings/TopBarSettingsTab';
+import { VirtualMachineSettingsTab } from './settings/VirtualMachineSettingsTab';
+import { NotificationSettingsTab } from './settings/NotificationSettingsTab';
+import { AutomatedTaskSettingsTab } from './settings/AutomatedTaskSettingsTab';
+import { CustomThemeSettingsTab } from './settings/CustomThemeSettingsTab';
 
 const WALLPAPERS = [
   { id: 'mesh-emerald', name: 'Emerald Obsidian (Default)', url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2000&q=80' },
@@ -76,21 +87,27 @@ const ACCENT_COLORS = [
 ];
 
 type SettingsTab = 
+  | 'windows'
+  | 'notifications'
+  | 'autotasks'
+  | 'customtheme'
   | 'appearance' 
   | 'display' 
+  | 'audio'
   | 'dock'
-  | 'appmgmt'
   | 'topbar'
-  | 'cache'
+  | 'terminal'
+  | 'vm'
   | 'power' 
-  | 'vm' 
   | 'package' 
   | 'network' 
+  | 'appmgmt'
+  | 'cache'
   | 'backup' 
   | 'diagnostics';
 
 export const SettingsApp: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('windows');
   const [settings, setSettings] = useState(Kernel.settings.get());
   const [hwInfo, setHwInfo] = useState(Kernel.settings.getHardwareInfo());
   const [customWallpaper, setCustomWallpaper] = useState('');
@@ -284,16 +301,22 @@ export const SettingsApp: React.FC = () => {
   };
 
   const tabs: { id: SettingsTab; label: string; icon: any }[] = [
-    { id: 'appearance', label: 'Appearance', icon: Palette },
+    { id: 'windows', label: 'Window Fit & Sizing', icon: AppWindow },
+    { id: 'customtheme', label: 'Custom Theme Studio', icon: Palette },
+    { id: 'notifications', label: 'Notifications & Alerts', icon: Bell },
+    { id: 'autotasks', label: 'Automated System Tasks', icon: Cpu },
+    { id: 'appearance', label: 'Appearance & Themes', icon: Palette },
     { id: 'display', label: 'Display & Scaling', icon: Monitor },
-    { id: 'dock', label: 'Dock & Bottom Bar', icon: Layers },
-    { id: 'appmgmt', label: 'Apps & Recycle Bin', icon: Trash2 },
-    { id: 'topbar', label: 'Top Bar & Menubar', icon: Sliders },
-    { id: 'cache', label: 'VFS & BIOS Firmware', icon: ShieldCheck },
+    { id: 'audio', label: 'Sound & Haptics', icon: Volume2 },
+    { id: 'dock', label: 'Dock & Launcher', icon: Layers },
+    { id: 'topbar', label: 'Top Bar & Status', icon: Sliders },
+    { id: 'terminal', label: 'Terminal & Shell', icon: Terminal },
+    { id: 'vm', label: 'Linux VM & Kernel', icon: Cpu },
     { id: 'power', label: 'Power & Battery', icon: Zap },
-    { id: 'vm', label: 'Linux & VM Engine', icon: Cpu },
     { id: 'package', label: 'Packages & APK', icon: Package },
-    { id: 'network', label: 'Network & Audio', icon: Wifi },
+    { id: 'network', label: 'Network & DNS', icon: Wifi },
+    { id: 'appmgmt', label: 'Apps & Recycle Bin', icon: Trash2 },
+    { id: 'cache', label: 'VFS & Firmware', icon: ShieldCheck },
     { id: 'backup', label: 'Storage & Backup', icon: Database },
     { id: 'diagnostics', label: 'System Diagnostics', icon: Activity },
   ];
@@ -323,7 +346,7 @@ export const SettingsApp: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => Kernel.settings.toggleDarkMode()}
-            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white flex items-center gap-1.5 transition text-xs font-medium"
+            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white flex items-center gap-1.5 transition text-xs font-medium cursor-pointer"
           >
             {settings.darkMode ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-blue-400" />}
             <span>{settings.darkMode ? 'Light Mode' : 'Dark Mode'}</span>
@@ -334,7 +357,7 @@ export const SettingsApp: React.FC = () => {
       {/* Main Split Layout */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
         {/* Left Navigation Tabs */}
-        <div className="w-full md:w-52 bg-[#0e1017] border-b md:border-b-0 md:border-r border-white/10 p-2 shrink-0 flex md:flex-col gap-1 overflow-x-auto md:overflow-y-auto">
+        <div className="w-full md:w-56 bg-[#0e1017] border-b md:border-b-0 md:border-r border-white/10 p-2 shrink-0 flex md:flex-col gap-1 overflow-x-auto md:overflow-y-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isSelected = activeTab === tab.id;
@@ -365,6 +388,68 @@ export const SettingsApp: React.FC = () => {
 
         {/* Right Scrollable Content Pane */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+          {/* TAB: WINDOW FIT & SIZING */}
+          {activeTab === 'windows' && (
+            <div className="max-w-3xl">
+              <WindowSettingsTab settings={settings} onUpdate={handleUpdate} notify={notify} />
+            </div>
+          )}
+
+          {/* TAB: CUSTOM THEME STUDIO */}
+          {activeTab === 'customtheme' && (
+            <div className="max-w-4xl">
+              <CustomThemeSettingsTab notify={notify} />
+            </div>
+          )}
+
+          {/* TAB: NOTIFICATIONS & ALERTS */}
+          {activeTab === 'notifications' && (
+            <div className="max-w-4xl">
+              <NotificationSettingsTab notify={notify} />
+            </div>
+          )}
+
+          {/* TAB: AUTOMATED SYSTEM TASKS */}
+          {activeTab === 'autotasks' && (
+            <div className="max-w-4xl">
+              <AutomatedTaskSettingsTab notify={notify} />
+            </div>
+          )}
+
+          {/* TAB: SOUND & AUDIO */}
+          {activeTab === 'audio' && (
+            <div className="max-w-3xl">
+              <AudioSettingsTab settings={settings} onUpdate={handleUpdate} notify={notify} />
+            </div>
+          )}
+
+          {/* TAB: TERMINAL & SHELL */}
+          {activeTab === 'terminal' && (
+            <div className="max-w-3xl">
+              <TerminalSettingsTab settings={settings} onUpdate={handleUpdate} notify={notify} />
+            </div>
+          )}
+
+          {/* TAB: DOCK & LAUNCHER */}
+          {activeTab === 'dock' && (
+            <div className="max-w-3xl">
+              <DockSettingsTab settings={settings} onUpdate={handleUpdate} notify={notify} />
+            </div>
+          )}
+
+          {/* TAB: TOP BAR */}
+          {activeTab === 'topbar' && (
+            <div className="max-w-3xl">
+              <TopBarSettingsTab settings={settings} onUpdate={handleUpdate} notify={notify} />
+            </div>
+          )}
+
+          {/* TAB: LINUX VM & KERNEL */}
+          {activeTab === 'vm' && (
+            <div className="max-w-3xl">
+              <VirtualMachineSettingsTab settings={settings} onUpdate={handleUpdate} notify={notify} />
+            </div>
+          )}
           {/* TAB 1: APPEARANCE */}
           {activeTab === 'appearance' && (
             <div className="max-w-3xl space-y-6">
@@ -1649,6 +1734,107 @@ export const SettingsApp: React.FC = () => {
                 </div>
               </div>
 
+              {/* Safe-State Engine & Automated RAM Checkpoints */}
+              <div className="p-4 rounded-2xl bg-[#141724] border border-white/10 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                      <span>🛡️ Safe-State Engine & RAM Checkpoints</span>
+                    </h3>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      Configure automated RAM snapshots, memory threshold triggers, and terminal broadcast alerts.
+                    </p>
+                  </div>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                    settings.safeStateAutoSnapshot
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-white/10 text-gray-400 border border-white/10'
+                  }`}>
+                    {settings.safeStateAutoSnapshot ? 'AUTO-SNAPSHOT ON' : 'AUTO-SNAPSHOT OFF'}
+                  </span>
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  {/* Master Auto-Snapshot Toggle */}
+                  <label className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer border border-transparent hover:border-white/10">
+                    <div>
+                      <div className="font-semibold text-white text-xs">Automated RAM Checkpoints</div>
+                      <div className="text-[10px] text-gray-400">
+                        Automatically captures guest memory registers and creates a checkpoint when RAM pressure spikes
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.safeStateAutoSnapshot}
+                      onChange={(e) => {
+                        handleUpdate({ safeStateAutoSnapshot: e.target.checked });
+                        Kernel.vm.setAutoSnapshot(e.target.checked);
+                      }}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer"
+                    />
+                  </label>
+
+                  {/* Terminal Broadcast Notification Toggle */}
+                  <label className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer border border-transparent hover:border-white/10">
+                    <div>
+                      <div className="font-semibold text-white text-xs">Terminal Broadcast Messages</div>
+                      <div className="text-[10px] text-gray-400">
+                        Displays <code className="text-[#6ee7b7] font-mono text-[10px]">[SAFE-STATE ENGINE]</code> notices in the terminal when checkpoints are saved
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.safeStateTerminalBroadcast}
+                      onChange={(e) => {
+                        handleUpdate({ safeStateTerminalBroadcast: e.target.checked });
+                        Kernel.vm.setSafeStateTerminalBroadcast(e.target.checked);
+                      }}
+                      className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer"
+                    />
+                  </label>
+
+                  {/* Memory Threshold & Panic Recovery */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="space-y-1.5 p-2.5 rounded-xl bg-black/20 border border-white/5">
+                      <label className="text-xs text-gray-300 font-semibold block">RAM Pressure Trigger Threshold</label>
+                      <select
+                        value={settings.safeStateThresholdPercent}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value);
+                          handleUpdate({ safeStateThresholdPercent: val });
+                          Kernel.vm.setSafeStateThreshold(val);
+                        }}
+                        className="w-full bg-[#0d0f18] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                      >
+                        <option value={70}>70% RAM Pressure</option>
+                        <option value={75}>75% RAM Pressure</option>
+                        <option value={80}>80% RAM Pressure</option>
+                        <option value={85}>85% RAM Pressure (Recommended)</option>
+                        <option value={90}>90% RAM Pressure</option>
+                        <option value={95}>95% RAM Pressure</option>
+                      </select>
+                      <span className="text-[10px] text-gray-500 block">Snapshots trigger only when memory exceeds this level</span>
+                    </div>
+
+                    <label className="flex items-center justify-between p-2.5 rounded-xl bg-black/20 border border-white/5 cursor-pointer">
+                      <div>
+                        <div className="font-semibold text-white text-xs">Auto-Rollback on Panic</div>
+                        <div className="text-[10px] text-gray-400">Restores last clean snapshot if kernel panic or OOM error occurs</div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={settings.safeStateAutoRecoverOnPanic}
+                        onChange={(e) => {
+                          handleUpdate({ safeStateAutoRecoverOnPanic: e.target.checked });
+                          Kernel.vm.setSafeStateAutoRecover(e.target.checked);
+                        }}
+                        className="w-4 h-4 accent-[#6ee7b7] rounded cursor-pointer"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
               {/* Terminal Customization */}
               <div className="p-4 rounded-2xl bg-[#141724] border border-white/10 space-y-4">
                 <h3 className="font-bold text-white text-sm">Terminal Font & Appearance</h3>
@@ -2228,6 +2414,19 @@ export const SettingsApp: React.FC = () => {
                     ))}
                   </div>
                 )}
+
+                <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+                  <div className="text-[11px] text-gray-400">
+                    Want real-time device auto-discovery, live connection mesh & package auto-updater?
+                  </div>
+                  <button
+                    onClick={() => Kernel.wm.launch('autodetect')}
+                    className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Activity className="w-3.5 h-3.5" />
+                    <span>Open Auto-Detect & Sync Center</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}

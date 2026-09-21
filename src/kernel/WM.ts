@@ -1,6 +1,7 @@
 import { WindowInstance, AppId } from './types';
 import { AppRegistry } from './AppRegistry';
 import { SoundManager } from './SoundManager';
+import { Settings } from './Settings';
 
 export class WindowManager {
   private windows: WindowInstance[] = [];
@@ -109,7 +110,7 @@ export class WindowManager {
     const appDef = AppRegistry.get(appId);
     if (!appDef) return null;
 
-    const allowMultiple = args?.multiInstance === true || appId === 'gui-window';
+    const allowMultiple = args?.multiInstance === true || appId === 'gui-window' || appId === 'wine-app';
 
     // Focus or toggle if already open (for single-instance apps)
     if (!allowMultiple) {
@@ -131,18 +132,45 @@ export class WindowManager {
     const sw = typeof window !== 'undefined' ? window.innerWidth : 1024;
     const sh = typeof window !== 'undefined' ? window.innerHeight : 768;
     const isMobile = sw < 640;
+    const settings = Settings.get();
 
-    const reqW = typeof args?.width === 'number' ? args.width : appDef.width;
-    const reqH = typeof args?.height === 'number' ? args.height : appDef.height;
+    let defaultPresetW = appDef.width;
+    let defaultPresetH = appDef.height;
+
+    if (settings.windowDefaultSize === 'compact') {
+      defaultPresetW = 640; defaultPresetH = 440;
+    } else if (settings.windowDefaultSize === 'standard') {
+      defaultPresetW = 800; defaultPresetH = 520;
+    } else if (settings.windowDefaultSize === 'large') {
+      defaultPresetW = 1024; defaultPresetH = 640;
+    } else if (settings.windowDefaultSize === 'wide') {
+      defaultPresetW = 1200; defaultPresetH = 700;
+    } else if (settings.windowDefaultSize === 'ultrawide') {
+      defaultPresetW = 1440; defaultPresetH = 780;
+    } else if (settings.windowDefaultSize === 'custom') {
+      defaultPresetW = settings.windowCustomWidth || 850;
+      defaultPresetH = settings.windowCustomHeight || 550;
+    }
+
+    const reqW = typeof args?.width === 'number' ? args.width : defaultPresetW;
+    const reqH = typeof args?.height === 'number' ? args.height : defaultPresetH;
 
     const w = isMobile ? sw - 12 : Math.min(reqW, sw - 40);
     const h = isMobile ? sh - 110 : Math.min(reqH, sh - 120);
-    const x = isMobile ? 6 : Math.max(20, Math.floor((sw - w) / 2) + ((this.windows.length % 6) * 22));
-    const y = isMobile ? 48 : Math.max(50, Math.floor((sh - h) / 2) - 20 + ((this.windows.length % 6) * 18));
-    
+
+    let x = isMobile ? 6 : Math.max(20, Math.floor((sw - w) / 2) + ((this.windows.length % 6) * 22));
+    let y = isMobile ? 48 : Math.max(50, Math.floor((sh - h) / 2) - 20 + ((this.windows.length % 6) * 18));
+
+    if (settings.windowDefaultPlacement === 'center' && !isMobile) {
+      x = Math.max(10, Math.floor((sw - w) / 2));
+      y = Math.max(46, Math.floor((sh - h) / 2) - 15);
+    }
+
     this.highestZ++;
     
     const winTitle = (args?.title as string) || appDef.title;
+
+    const shouldAutoMaximize = isMobile || settings.windowDefaultSize === 'maximized';
 
     const newWin: WindowInstance = {
       id: `win-${appId}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -151,7 +179,7 @@ export class WindowManager {
       x, y, width: w, height: h,
       zIndex: this.highestZ,
       isMinimized: false,
-      isMaximized: isMobile, // Auto-maximize on small mobile displays
+      isMaximized: shouldAutoMaximize,
       args
     };
 
@@ -386,6 +414,186 @@ export class WindowManager {
       };
     });
     this.focus(id);
+  }
+
+  snapTop(id: string) {
+    SoundManager.play('snap');
+    const sw = window.innerWidth;
+    const sh = window.innerHeight;
+    const w = sw - 12;
+    const h = Math.floor((sh - 110) / 2) - 4;
+    this.windows = this.windows.map(win => {
+      if (win.id !== id) return win;
+      return {
+        ...win,
+        isMaximized: false,
+        x: 6,
+        y: 46,
+        width: w,
+        height: h,
+        prevBounds: { x: win.x, y: win.y, width: win.width, height: win.height }
+      };
+    });
+    this.focus(id);
+  }
+
+  snapBottom(id: string) {
+    SoundManager.play('snap');
+    const sw = window.innerWidth;
+    const sh = window.innerHeight;
+    const w = sw - 12;
+    const h = Math.floor((sh - 110) / 2) - 4;
+    const topY = 46 + h + 6;
+    this.windows = this.windows.map(win => {
+      if (win.id !== id) return win;
+      return {
+        ...win,
+        isMaximized: false,
+        x: 6,
+        y: topY,
+        width: w,
+        height: h,
+        prevBounds: { x: win.x, y: win.y, width: win.width, height: win.height }
+      };
+    });
+    this.focus(id);
+  }
+
+  snapQuadrant(id: string, corner: 'tl' | 'tr' | 'bl' | 'br') {
+    SoundManager.play('snap');
+    const sw = window.innerWidth;
+    const sh = window.innerHeight;
+    const w = Math.floor(sw / 2) - 8;
+    const h = Math.floor((sh - 110) / 2) - 4;
+    const leftX = 6;
+    const rightX = Math.floor(sw / 2) + 2;
+    const topY = 46;
+    const bottomY = 46 + h + 6;
+
+    let x = leftX;
+    let y = topY;
+    if (corner === 'tr') { x = rightX; y = topY; }
+    else if (corner === 'bl') { x = leftX; y = bottomY; }
+    else if (corner === 'br') { x = rightX; y = bottomY; }
+
+    this.windows = this.windows.map(win => {
+      if (win.id !== id) return win;
+      return {
+        ...win,
+        isMaximized: false,
+        x,
+        y,
+        width: w,
+        height: h,
+        prevBounds: { x: win.x, y: win.y, width: win.width, height: win.height }
+      };
+    });
+    this.focus(id);
+  }
+
+  snapThird(id: string, col: 'left' | 'center' | 'right') {
+    SoundManager.play('snap');
+    const sw = window.innerWidth;
+    const sh = window.innerHeight;
+    const w = Math.floor((sw - 24) / 3);
+    const h = sh - 110;
+
+    let x = 6;
+    if (col === 'center') x = 6 + w + 6;
+    else if (col === 'right') x = 6 + (w * 2) + 12;
+
+    this.windows = this.windows.map(win => {
+      if (win.id !== id) return win;
+      return {
+        ...win,
+        isMaximized: false,
+        x,
+        y: 46,
+        width: w,
+        height: h,
+        prevBounds: { x: win.x, y: win.y, width: win.width, height: win.height }
+      };
+    });
+    this.focus(id);
+  }
+
+  snapTwoThirds(id: string, side: 'left' | 'right') {
+    SoundManager.play('snap');
+    const sw = window.innerWidth;
+    const sh = window.innerHeight;
+    const w = Math.floor(((sw - 18) * 2) / 3);
+    const h = sh - 110;
+
+    const x = side === 'left' ? 6 : sw - w - 6;
+
+    this.windows = this.windows.map(win => {
+      if (win.id !== id) return win;
+      return {
+        ...win,
+        isMaximized: false,
+        x,
+        y: 46,
+        width: w,
+        height: h,
+        prevBounds: { x: win.x, y: win.y, width: win.width, height: win.height }
+      };
+    });
+    this.focus(id);
+  }
+
+  resizePreset(id: string, preset: 'compact' | 'standard' | 'large' | 'wide' | 'ultrawide' | 'custom', customW?: number, customH?: number) {
+    SoundManager.play('snap');
+    const sw = window.innerWidth;
+    const sh = window.innerHeight;
+
+    let targetW = 800;
+    let targetH = 520;
+
+    if (preset === 'compact') {
+      targetW = 640; targetH = 440;
+    } else if (preset === 'standard') {
+      targetW = 800; targetH = 520;
+    } else if (preset === 'large') {
+      targetW = 1024; targetH = 640;
+    } else if (preset === 'wide') {
+      targetW = 1200; targetH = 700;
+    } else if (preset === 'ultrawide') {
+      targetW = 1440; targetH = 780;
+    } else if (preset === 'custom') {
+      targetW = customW || 850;
+      targetH = customH || 550;
+    }
+
+    const w = Math.min(targetW, sw - 12);
+    const h = Math.min(targetH, sh - 110);
+    const x = Math.max(6, Math.floor((sw - w) / 2));
+    const y = Math.max(46, Math.floor((sh - h) / 2) - 15);
+
+    this.windows = this.windows.map(win => {
+      if (win.id !== id) return win;
+      return {
+        ...win,
+        isMaximized: false,
+        isShaded: false,
+        x,
+        y,
+        width: w,
+        height: h,
+        prevBounds: { x: win.x, y: win.y, width: win.width, height: win.height }
+      };
+    });
+    this.focus(id);
+  }
+
+  shakeToMinimizeOthers(activeId: string) {
+    SoundManager.play('minimize');
+    this.windows = this.windows.map(w => {
+      if (w.id === activeId) {
+        return { ...w, isMinimized: false };
+      }
+      return { ...w, isMinimized: true };
+    });
+    this.focus(activeId);
   }
 
   centerWindow(id: string) {

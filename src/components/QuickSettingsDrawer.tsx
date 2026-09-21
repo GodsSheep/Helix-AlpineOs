@@ -20,7 +20,8 @@ import {
   Sliders, 
   Check, 
   Signal,
-  Laptop
+  Laptop,
+  Radio
 } from 'lucide-react';
 import { Settings, HelixSettings } from '../kernel/Settings';
 import { Kernel } from '../kernel';
@@ -344,7 +345,17 @@ export const QuickSettingsDrawer: React.FC<QuickSettingsDrawerProps> = ({
               className="text-[#6ee7b7] hover:text-[#5cd4a5] font-semibold flex items-center gap-1.5 transition cursor-pointer"
             >
               <SettingsIcon className="w-3.5 h-3.5" />
-              <span>Full System Settings...</span>
+              <span>Settings</span>
+            </button>
+            <button
+              onClick={() => {
+                onClose();
+                Kernel.wm.launch('autodetect');
+              }}
+              className="text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <Radio className="w-3.5 h-3.5" />
+              <span>Auto-Detect</span>
             </button>
           </div>
 

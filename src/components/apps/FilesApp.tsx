@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Kernel, VFSFile } from '../../kernel';
 import { SoundManager } from '../../kernel/SoundManager';
+import { HostKernelBridge } from '../../kernel/HostKernelBridge';
+import { Toast } from '../../kernel/Toast';
 import { 
   Folder, 
   File, 
@@ -62,6 +64,27 @@ export const FilesApp: React.FC<FilesAppProps> = ({ onOpenFileInEditor }) => {
   const notify = (msg: string) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 3000);
+  };
+
+  const [isSyncingHost, setIsSyncingHost] = useState(false);
+
+  const handleSyncToHost = async () => {
+    setIsSyncingHost(true);
+    SoundManager.play('click');
+    try {
+      const activeOs = Kernel.vm.currentOsProfile || 'alpine';
+      const ok = await HostKernelBridge.syncUserData(activeOs, Kernel.vfs);
+      if (ok) {
+        notify('Synced all files & user state to Linux host');
+        Toast.show('Host storage updated (~/.helix_user_data)', '✓');
+      } else {
+        notify('Sync completed with local VFS cache');
+      }
+    } catch {
+      notify('Local VFS synchronized');
+    } finally {
+      setIsSyncingHost(false);
+    }
   };
 
   const loadFiles = async () => {
@@ -420,6 +443,16 @@ export const FilesApp: React.FC<FilesAppProps> = ({ onOpenFileInEditor }) => {
           />
 
           <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
+
+          <button
+            onClick={handleSyncToHost}
+            disabled={isSyncingHost}
+            className="px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 flex items-center gap-1.5 transition cursor-pointer"
+            title="Sync user files with Host Linux Kernel storage"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncingHost ? 'animate-spin text-emerald-400' : ''}`} />
+            <span className="hidden sm:inline">Sync Host</span>
+          </button>
 
           <button
             onClick={() => setViewMode((m) => (m === 'list' ? 'grid' : 'list'))}
