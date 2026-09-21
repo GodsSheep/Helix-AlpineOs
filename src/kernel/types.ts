@@ -71,7 +71,12 @@ export type AppId =
   | 'helix-ai'
   | 'p2p-mesh'
   | 'apk-bridge'
-  | 'chroot';
+  | 'chroot'
+  | 'setup'
+  | 'linux-security'
+  | 'dev-tools-studio'
+  | 'visual-game-engine'
+  | 'universal-utils';
 
 declare global {
   interface Window {

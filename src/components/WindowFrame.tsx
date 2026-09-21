@@ -759,7 +759,7 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
 
       {/* Window Body - hidden when collapsed/shaded to save rendering resources & battery */}
       {!isShaded && (
-        <div className="flex-1 overflow-hidden bg-[#0c0e14] relative contain-paint">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#0c0e14] relative contain-paint">
           {children}
         </div>
       )}

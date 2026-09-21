@@ -82,6 +82,11 @@ import { AutoDetectionCenterApp } from './components/apps/AutoDetectionCenterApp
 import { KernelMemoryMonitorApp } from './components/apps/KernelMemoryMonitorApp';
 import { WineAppWindow } from './components/apps/WineAppWindow';
 import { ChrootApp } from './components/apps/ChrootApp';
+import { HelixMegaSetupApp } from './components/apps/HelixMegaSetupApp';
+import { LinuxSecurityApp } from './components/apps/LinuxSecurityApp';
+import { DevToolsStudioApp } from './components/apps/DevToolsStudioApp';
+import { VisualGameEngineApp } from './components/apps/VisualGameEngineApp';
+import { UniversalUtilitiesApp } from './components/apps/UniversalUtilitiesApp';
 import { DesktopContextMenu } from './components/DesktopContextMenu';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { Settings, HelixSettings } from './kernel/Settings';
@@ -331,6 +336,7 @@ export default function App() {
       case 'store': return <StoreApp />;
       case 'mon': return <MonitorApp />;
       case 'chroot': return <ChrootApp />;
+      case 'setup': return <HelixMegaSetupApp notify={(m) => Toast.show(m)} />;
       case 'files':
         return (
           <FilesApp
@@ -403,6 +409,12 @@ export default function App() {
       case 'helix-ai': return <HelixAiApp notify={(m) => Toast.show(m)} />;
       case 'p2p-mesh': return <P2PMeshApp notify={(m) => Toast.show(m)} />;
       case 'apk-bridge': return <ApkRunnerApp notify={(m) => Toast.show(m)} />;
+      case 'chroot': return <ChrootApp />;
+      case 'setup': return <HelixMegaSetupApp notify={(m) => Toast.show(m)} />;
+      case 'linux-security': return <LinuxSecurityApp />;
+      case 'dev-tools-studio': return <DevToolsStudioApp />;
+      case 'visual-game-engine': return <VisualGameEngineApp />;
+      case 'universal-utils': return <UniversalUtilitiesApp />;
       case 'wine-app': return <WineAppWindow windowId={win.id} args={win.args} />;
       case 'gui-window': return <DynamicGuiWindow guiId={win.args?.guiId as string} args={win.args} />;
       default: return <TerminalApp />;

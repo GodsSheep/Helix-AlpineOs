@@ -121,15 +121,7 @@ export const DesktopContextMenu: React.FC<ContextMenuProps> = ({
       SoundManager.play('open');
       const pid = Math.floor(Math.random() * 9000) + 1000;
       const mem = Math.floor(Math.random() * 50) + 12;
-      alert(`[Helix System Properties: ${appDef.title}]\n` +
-            `• App ID: ${appId}\n` +
-            `• Executable: /usr/bin/${appId}\n` +
-            `• Virtual PID: ${pid}\n` +
-            `• Memory Sandbox: ${mem} MB RSS\n` +
-            `• Runtime JIT: Enabled (v86-pipe)\n` +
-            `• Permissions: cap_net_raw, cap_sys_admin\n` +
-            `• Description: ${appDef.description}`
-      );
+      Toast.show(`${appDef.title} (PID: ${pid}, RAM: ${mem}MB) - Active`, 'ℹ️');
       onClose();
     };
 

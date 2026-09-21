@@ -36,6 +36,61 @@ export class AppRegistry {
       iconBg: 'bg-gradient-to-tr from-indigo-600/30 to-blue-500/20 border-indigo-500/30 text-indigo-300'
     },
     {
+      id: 'setup',
+      title: 'Mega Setup & Kernel Hub',
+      icon: '🛠️',
+      category: 'System',
+      description: 'One-click installer for system kernels, AI model weights, Android ART runtimes, and Wine win32 layers.',
+      width: 760,
+      height: 560,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-cyan-600/35 to-blue-500/20 border-cyan-500/30 text-cyan-300'
+    },
+    {
+      id: 'linux-security',
+      title: 'Linux Security & Hardening Suite',
+      icon: '🛡️',
+      category: 'Utilities',
+      description: 'Comprehensive open-source Linux security suite with Lynis audits, AppArmor/SELinux profiles, auditd logs, fail2ban rules, OpenSSL crypto workbench, and CIS benchmarks.',
+      width: 800,
+      height: 580,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-emerald-600/35 to-teal-500/20 border-emerald-500/30 text-emerald-300'
+    },
+    {
+      id: 'dev-tools-studio',
+      title: 'Developer Tools Studio',
+      icon: '⚡',
+      category: 'Development',
+      description: 'All-in-one developer workbench: code formatters, AST parser, regex debugger, HTTP/REST API test console, multi-format encoders/decoders, JSON schema validator, and visual diff.',
+      width: 820,
+      height: 600,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-blue-600/35 to-indigo-500/20 border-blue-500/30 text-blue-300'
+    },
+    {
+      id: 'visual-game-engine',
+      title: 'Visual Game Engine (No-Code)',
+      icon: '🎮',
+      category: 'Games',
+      description: 'Node-based visual scripting 2D game engine. Design levels, wire event triggers, actions, physics, sound, and playtest immediately without code.',
+      width: 860,
+      height: 620,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-pink-600/35 to-rose-500/20 border-pink-500/30 text-pink-300'
+    },
+    {
+      id: 'universal-utils',
+      title: 'Universal Utilities Suite',
+      icon: '🧰',
+      category: 'Utilities',
+      description: 'Centralized productivity & system workbench: multi-format file converters, text manipulators, cryptographic checksum verifier, batch renamer, and diagnostics.',
+      width: 800,
+      height: 580,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-amber-600/35 to-yellow-500/20 border-amber-500/30 text-amber-300'
+    },
+    {
       id: 'store',
       title: 'App Store',
       icon: '📦',
