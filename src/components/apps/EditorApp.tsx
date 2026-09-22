@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Editor, { OnMount } from '@monaco-editor/react';
 import { Kernel, VFSFile } from '../../kernel';
 import { GuiDisplayServer } from '../../kernel/GuiServer';
 import { Toast } from '../../kernel/Toast';
@@ -45,14 +46,13 @@ export const EditorApp: React.FC<{ initialFile?: string }> = ({ initialFile }) =
   const [isNewFileModalOpen, setIsNewFileModalOpen] = useState(false);
   const [newFileNameInput, setNewFileNameInput] = useState('');
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const lineNumbersRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<any>(null);
 
   const detectLanguage = (path: string) => {
     if (path.endsWith('.py')) return 'python';
     if (path.endsWith('.js') || path.endsWith('.ts')) return 'javascript';
     if (path.endsWith('.sh') || path.endsWith('.bash')) return 'shell';
-    if (path.endsWith('.c') || path.endsWith('.cpp')) return 'c_cpp';
+    if (path.endsWith('.c') || path.endsWith('.cpp')) return 'cpp';
     if (path.endsWith('.html')) return 'html';
     if (path.endsWith('.json')) return 'json';
     if (path.endsWith('.md')) return 'markdown';
@@ -95,12 +95,6 @@ export const EditorApp: React.FC<{ initialFile?: string }> = ({ initialFile }) =
       unsubWatch();
     };
   }, [activeFile]);
-
-  useEffect(() => {
-    if (textareaRef.current && lineNumbersRef.current) {
-      lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
-    }
-  }, [activeFile, content]);
 
   const handleSwitchTab = async (path: string) => {
     if (!isSaved && activeFile) {
@@ -197,37 +191,6 @@ export const EditorApp: React.FC<{ initialFile?: string }> = ({ initialFile }) =
     }
   };
 
-  const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-      e.preventDefault();
-      handleSave();
-      return;
-    }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      handleRun();
-      return;
-    }
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const textarea = e.currentTarget;
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const newContent = content.substring(0, start) + '    ' + content.substring(end);
-      setContent(newContent);
-      setIsSaved(false);
-      setTimeout(() => {
-        textarea.selectionStart = textarea.selectionEnd = start + 4;
-      }, 0);
-    }
-  };
-
-  const handleScroll = () => {
-    if (textareaRef.current && lineNumbersRef.current) {
-      lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
-    }
-  };
-
   const handleCreateNewFile = async () => {
     const name = newFileNameInput.trim();
     if (name) {
@@ -272,6 +235,10 @@ export const EditorApp: React.FC<{ initialFile?: string }> = ({ initialFile }) =
 
   const lineCount = content.split('\n').length;
   const charCount = content.length;
+
+  const onEditorMount: OnMount = (editor) => {
+    editorRef.current = editor;
+  };
 
   return (
     <div className="h-full flex flex-col bg-[#0d0f17] text-[#edf1f7] text-xs font-mono select-none overflow-hidden relative">
@@ -503,43 +470,28 @@ export const EditorApp: React.FC<{ initialFile?: string }> = ({ initialFile }) =
             </button>
           </div>
 
-          {/* Text Editor Area with Line Numbers */}
+          {/* Text Editor Area - Monaco */}
           <div className="flex-1 flex overflow-hidden relative">
-            {/* Line Numbers Column */}
-            <div
-              ref={lineNumbersRef}
-              className="w-10 bg-[#090b10] py-3 pr-2 text-right text-gray-600 select-none font-mono text-xs border-r border-white/5 overflow-y-hidden"
-              style={{ fontSize: `${fontSize}px`, lineHeight: '1.6' }}
-            >
-              {Array.from({ length: lineCount }, (_, i) => (
-                <div key={i}>{i + 1}</div>
-              ))}
-            </div>
-
-            {/* Editable Text Area */}
-            <textarea
-              ref={textareaRef}
+            <Editor
+              height="100%"
+              theme="vs-dark"
+              language={languageMode}
               value={content}
-              onChange={(e) => {
-                setContent(e.target.value);
+              onChange={(value) => {
+                setContent(value || '');
                 setIsSaved(false);
               }}
-              onKeyDown={handleTextareaKeyDown}
-              onScroll={handleScroll}
-              spellCheck={false}
-              autoCapitalize="off"
-              autoComplete="off"
-              className={`flex-1 p-3 bg-transparent text-[#edf1f7] outline-none resize-none font-mono selection:bg-[#6ee7b7]/30 ${
-                wordWrap ? 'whitespace-pre-wrap' : 'whitespace-pre overflow-x-auto'
-              }`}
-              style={{
-                fontSize: `${fontSize}px`,
-                lineHeight: '1.6',
+              onMount={onEditorMount}
+              options={{
+                fontSize: fontSize,
+                wordWrap: wordWrap ? 'on' : 'off',
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
                 tabSize: 4,
               }}
             />
           </div>
-
+          
           {/* Bottom Run Console (Appears if Output exists) */}
           {output !== null && (
             <div className="h-44 bg-[#08090d] border-t border-white/15 flex flex-col select-text shrink-0 animate-in slide-in-from-bottom-2 duration-150">

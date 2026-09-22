@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { WindowInstance, Kernel } from '../kernel';
 import { Settings, HelixSettings } from '../kernel/Settings';
+import { SnapLayoutsOverlay } from './SnapLayoutsOverlay';
 import { 
   Minus, 
   Square, 
@@ -52,7 +53,9 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [resizeDir, setResizeDir] = useState<string | null>(null);
   const [showSnapMenu, setShowSnapMenu] = useState(false);
+  const [showWin11Snap, setShowWin11Snap] = useState(false);
   const [settings, setSettings] = useState<HelixSettings>(Settings.get());
+  const snapHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const frameRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startY: number; initX: number; initY: number; lastX: number; shakeCount: number; lastShakeDir: number; lastShakeTime: number; startTime: number; pointerType: string } | null>(null);
@@ -731,16 +734,39 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
                 <span className="hidden md:inline">Background</span>
               </button>
 
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMaximize();
+              {/* Maximize & Win11 Snap Layouts Trigger */}
+              <div 
+                className="relative"
+                onMouseEnter={() => {
+                  if (snapHoverTimer.current) clearTimeout(snapHoverTimer.current);
+                  snapHoverTimer.current = setTimeout(() => setShowWin11Snap(true), 250);
                 }}
-                className="w-6 h-6 rounded-md hover:bg-white/10 text-[#8b93a7] hover:text-white flex items-center justify-center transition cursor-pointer"
-                title={win.isMaximized ? 'Restore' : 'Maximize'}
+                onMouseLeave={() => {
+                  if (snapHoverTimer.current) clearTimeout(snapHoverTimer.current);
+                  snapHoverTimer.current = setTimeout(() => setShowWin11Snap(false), 300);
+                }}
               >
-                {win.isMaximized ? <Copy className="w-3 h-3" /> : <Square className="w-3 h-3" />}
-              </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowWin11Snap(false);
+                    onMaximize();
+                  }}
+                  className="w-6 h-6 rounded-md hover:bg-white/10 text-[#8b93a7] hover:text-white flex items-center justify-center transition cursor-pointer"
+                  title={win.isMaximized ? 'Restore' : 'Maximize (Hover for Windows 11 Snap Layouts)'}
+                >
+                  {win.isMaximized ? <Copy className="w-3 h-3" /> : <Square className="w-3 h-3" />}
+                </button>
+
+                {showWin11Snap && (
+                  <SnapLayoutsOverlay
+                    windowId={win.id}
+                    onSelect={() => {
+                        setShowWin11Snap(false);
+                    }}
+                  />
+                )}
+              </div>
 
               <button
                 onClick={(e) => {

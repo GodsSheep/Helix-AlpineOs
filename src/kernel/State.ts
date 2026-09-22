@@ -12,14 +12,18 @@ export interface SystemState {
 }
 
 export class StateManager {
-  private state: SystemState = {
-    helix: 'booting',
-    linux: 'cold',
-    network: navigator.onLine ? 'online' : 'offline',
-    sync: 'paused'
-  };
-
+  private state: SystemState = this.loadState();
   private listeners = new Set<(state: SystemState) => void>();
+
+  private loadState(): SystemState {
+    const saved = localStorage.getItem('helix_system_state');
+    return saved ? JSON.parse(saved) : {
+      helix: 'booting',
+      linux: 'cold',
+      network: navigator.onLine ? 'online' : 'offline',
+      sync: 'paused'
+    };
+  }
 
   get current() {
     return this.state;
@@ -27,6 +31,7 @@ export class StateManager {
 
   update(partial: Partial<SystemState>) {
     this.state = { ...this.state, ...partial };
+    localStorage.setItem('helix_system_state', JSON.stringify(this.state));
     this.notify();
   }
 

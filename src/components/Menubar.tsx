@@ -15,7 +15,8 @@ import {
   Bell,
   Cpu,
   Layers,
-  Radio
+  Radio,
+  LayoutGrid
 } from 'lucide-react';
 import { SystemState } from '../kernel';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -27,6 +28,8 @@ interface MenubarProps {
   onOpenApp: (appId: string) => void;
   onToggleQuickSettings?: () => void;
   isQuickSettingsOpen?: boolean;
+  onToggleWidgetsBoard?: () => void;
+  isWidgetsBoardOpen?: boolean;
   isZenMode?: boolean;
   onToggleZenMode?: () => void;
   onToggleNotificationCenter?: () => void;
@@ -38,6 +41,8 @@ export const Menubar: React.FC<MenubarProps> = ({
   onOpenApp, 
   onToggleQuickSettings,
   isQuickSettingsOpen,
+  onToggleWidgetsBoard,
+  isWidgetsBoardOpen = false,
   isZenMode = false,
   onToggleZenMode,
   onToggleNotificationCenter,
@@ -124,6 +129,21 @@ export const Menubar: React.FC<MenubarProps> = ({
           <span className="w-2 h-2 rounded-full bg-[#6ee7b7] shadow-[0_0_8px_#6ee7b7]" />
           <span className="font-semibold text-xs sm:text-sm">HELIX</span>
         </button>
+
+        {onToggleWidgetsBoard && (
+          <button
+            onClick={onToggleWidgetsBoard}
+            className={`p-1 sm:px-2 sm:py-1 rounded transition flex items-center gap-1.5 cursor-pointer text-xs ${
+              isWidgetsBoardOpen
+                ? 'bg-blue-600/30 text-blue-300 border border-blue-500/40'
+                : 'text-[#8b93a7] hover:text-white hover:bg-white/5'
+            }`}
+            title="Windows 11 Widgets Board (Weather, System, Crypto, Sticky Notes)"
+          >
+            <LayoutGrid className="w-3.5 h-3.5 text-blue-400" />
+            <span className="hidden sm:inline font-medium">Widgets</span>
+          </button>
+        )}
 
         <span className="text-white/20 hidden xs:inline">|</span>
 

@@ -87,11 +87,21 @@ import { LinuxSecurityApp } from './components/apps/LinuxSecurityApp';
 import { DevToolsStudioApp } from './components/apps/DevToolsStudioApp';
 import { VisualGameEngineApp } from './components/apps/VisualGameEngineApp';
 import { UniversalUtilitiesApp } from './components/apps/UniversalUtilitiesApp';
+import { RetroEmulatorApp } from './components/apps/RetroEmulatorApp';
+import { MediaPlayerApp } from './components/apps/MediaPlayerApp';
+import { HelixAppStoreApp } from './components/apps/HelixAppStoreApp';
+import { HelixSdkPlaygroundApp } from './components/apps/HelixSdkPlaygroundApp';
+import { NodeWebContainerApp } from './components/apps/NodeWebContainerApp';
+import { JSLinuxHypervisorApp } from './components/apps/JSLinuxHypervisorApp';
+import { DeveloperWorkspaceApp } from './components/apps/DeveloperWorkspaceApp';
+import { WidgetsBoard } from './components/WidgetsBoard';
 import { DesktopContextMenu } from './components/DesktopContextMenu';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { Settings, HelixSettings } from './kernel/Settings';
 import { ThemeEngine } from './kernel/ThemeEngine';
 import { Toast } from './kernel/Toast';
+import { SoundManager } from './kernel/SoundManager';
+import { HelixSDK } from './kernel/HelixSDK';
 import { WindowErrorBoundary, RootErrorBoundary } from './components/ErrorBoundary';
 import { Power, RefreshCw } from 'lucide-react';
 
@@ -115,11 +125,14 @@ export default function App() {
   const [activeWindowId, setActiveWindowId] = useState<string | null>(null);
   const [isLauncherOpen, setIsLauncherOpen] = useState(false);
   const [isQuickSettingsOpen, setIsQuickSettingsOpen] = useState(false);
+  const [isWidgetsBoardOpen, setIsWidgetsBoardOpen] = useState(false);
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const [isZenMode, setIsZenMode] = useState(false);
   const [settings, setSettings] = useState<HelixSettings>(Settings.get());
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number; type?: string } | null>(null);
   const [selectedShortcutId, setSelectedShortcutId] = useState<string | null>(null);
+  const [isHostDragOver, setIsHostDragOver] = useState(false);
+  const [marquee, setMarquee] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
 
   const desktopHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const desktopHoldStart = useRef<{ x: number; y: number } | null>(null);
@@ -179,8 +192,31 @@ export default function App() {
 
   useEffect(() => {
     ThemeEngine.init();
+    HelixSDK.init();
     Kernel.init().then(() => {
       console.log('[Kernel] VFS Persistent Storage & Kernel Engine Ready');
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const targetApp = params.get('app');
+        if (targetApp) {
+          const appMapping: Record<string, string> = {
+            terminal: 'term',
+            term: 'term',
+            files: 'files',
+            editor: 'editor',
+            store: 'app-store',
+            'app-store': 'app-store',
+            'node-webcontainer': 'node-webcontainer',
+            'jslinux-hypervisor': 'jslinux-hypervisor',
+            settings: 'settings',
+            monitor: 'monitor',
+          };
+          const resolvedAppId = appMapping[targetApp] || targetApp;
+          Kernel.wm.launch(resolvedAppId as any);
+        }
+      } catch (e) {
+        console.warn('URL app param launch error:', e);
+      }
     }).catch((err) => console.warn('Kernel init failed:', err));
     Kernel.apps.loadCustomApps();
 
@@ -415,6 +451,13 @@ export default function App() {
       case 'dev-tools-studio': return <DevToolsStudioApp />;
       case 'visual-game-engine': return <VisualGameEngineApp />;
       case 'universal-utils': return <UniversalUtilitiesApp />;
+      case 'retro-emulator': return <RetroEmulatorApp args={win.args} />;
+      case 'media-player': return <MediaPlayerApp args={win.args} />;
+      case 'app-store': return <HelixAppStoreApp />;
+      case 'sdk-playground': return <HelixSdkPlaygroundApp />;
+      case 'node-webcontainer': return <NodeWebContainerApp />;
+      case 'jslinux-hypervisor': return <JSLinuxHypervisorApp />;
+      case 'dev-workspace': return <DeveloperWorkspaceApp />;
       case 'wine-app': return <WineAppWindow windowId={win.id} args={win.args} />;
       case 'gui-window': return <DynamicGuiWindow guiId={win.args?.guiId as string} args={win.args} />;
       default: return <TerminalApp />;
@@ -513,6 +556,8 @@ export default function App() {
         onOpenApp={(appId) => Kernel.wm.launch(appId as any)}
         onToggleQuickSettings={() => setIsQuickSettingsOpen((prev) => !prev)}
         isQuickSettingsOpen={isQuickSettingsOpen}
+        onToggleWidgetsBoard={() => setIsWidgetsBoardOpen((prev) => !prev)}
+        isWidgetsBoardOpen={isWidgetsBoardOpen}
         isZenMode={isZenMode}
         onToggleZenMode={() => setIsZenMode((prev) => !prev)}
         onToggleNotificationCenter={handleToggleNotificationCenter}
@@ -521,7 +566,37 @@ export default function App() {
 
       <div
         id="desktop"
-        className="flex-1 relative overflow-hidden"
+        className={`flex-1 relative overflow-hidden transition duration-200 ${
+          isHostDragOver ? 'ring-4 ring-inset ring-[#6ee7b7]/60 bg-[#6ee7b7]/5' : ''
+        }`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsHostDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsHostDragOver(false);
+        }}
+        onDrop={async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsHostDragOver(false);
+          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const files = Array.from(e.dataTransfer.files);
+            for (const file of files) {
+              const reader = new FileReader();
+              reader.onload = (ev) => {
+                const content = (ev.target?.result as string) || '';
+                Kernel.vfs.write(`/mnt/helix/desktop/${file.name}`, content);
+                Toast.show(`Imported ${file.name} to Desktop`, '📥');
+                SoundManager.play('success');
+              };
+              reader.readAsText(file);
+            }
+          }
+        }}
         onContextMenu={(e) => {
           const target = e.target as HTMLElement;
           if (target.id === 'desktop' || target.closest('#desktop-bg')) {
@@ -533,6 +608,10 @@ export default function App() {
           const target = e.target as HTMLElement;
           if (target.id === 'desktop' || target.closest('#desktop-bg')) {
             if (e.button === 0) {
+              setContextMenuPos(null);
+              setSelectedShortcutId(null);
+              setMarquee({ startX: e.clientX, startY: e.clientY, currentX: e.clientX, currentY: e.clientY });
+
               cancelDesktopHold();
               desktopHoldStart.current = { x: e.clientX, y: e.clientY };
               desktopHoldTimer.current = setTimeout(() => {
@@ -544,14 +623,45 @@ export default function App() {
           }
         }}
         onPointerMove={(e) => {
+          if (marquee) {
+            setMarquee((prev) => prev ? { ...prev, currentX: e.clientX, currentY: e.clientY } : null);
+          }
           if (desktopHoldStart.current) {
             const dist = Math.hypot(e.clientX - desktopHoldStart.current.x, e.clientY - desktopHoldStart.current.y);
             if (dist > 8) cancelDesktopHold();
           }
         }}
-        onPointerUp={cancelDesktopHold}
-        onPointerCancel={cancelDesktopHold}
+        onPointerUp={() => {
+          cancelDesktopHold();
+          setMarquee(null);
+        }}
+        onPointerCancel={() => {
+          cancelDesktopHold();
+          setMarquee(null);
+        }}
       >
+        {isHostDragOver && (
+          <div className="absolute inset-0 z-50 bg-[#0d111a]/85 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none border-2 border-dashed border-[#6ee7b7] rounded-2xl m-4 animate-fade-in">
+            <div className="w-16 h-16 rounded-3xl bg-[#6ee7b7]/20 border border-[#6ee7b7]/40 flex items-center justify-center text-[#6ee7b7] text-3xl mb-3 shadow-xl">
+              📥
+            </div>
+            <h3 className="text-lg font-bold font-mono text-white">Drop files to import into Helix OS</h3>
+            <p className="text-xs text-gray-400 font-mono mt-1">Files will be saved to /mnt/helix/desktop</p>
+          </div>
+        )}
+
+        {/* Selection Marquee Lasso Box */}
+        {marquee && Math.hypot(marquee.currentX - marquee.startX, marquee.currentY - marquee.startY) > 6 && (
+          <div
+            className="absolute border border-[#6ee7b7]/60 bg-[#6ee7b7]/15 rounded-md pointer-events-none z-20"
+            style={{
+              left: Math.min(marquee.startX, marquee.currentX),
+              top: Math.min(marquee.startY, marquee.currentY),
+              width: Math.abs(marquee.currentX - marquee.startX),
+              height: Math.abs(marquee.currentY - marquee.startY),
+            }}
+          />
+        )}
         <div id="desktop-bg" className="absolute inset-0 flex items-center justify-center p-8" onClick={() => { setContextMenuPos(null); setSelectedShortcutId(null); }}>
           <div className="text-center space-y-3 opacity-30 select-none pointer-events-none">
             <div className="text-4xl font-mono tracking-wider font-bold text-[#6ee7b7]">Helix DE</div>
@@ -676,6 +786,12 @@ export default function App() {
         isOpen={isNotificationCenterOpen}
         onClose={() => setIsNotificationCenterOpen(false)}
         onOpenApp={(appId, args) => Kernel.wm.launch(appId as any, args)}
+      />
+
+      <WidgetsBoard
+        isOpen={isWidgetsBoardOpen}
+        onClose={() => setIsWidgetsBoardOpen(false)}
+        onOpenApp={(appId) => Kernel.wm.launch(appId as any)}
       />
 
       <OfflineIndicator />

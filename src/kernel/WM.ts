@@ -664,7 +664,7 @@ export class WindowManager {
     this.notify();
   }
 
-  updateBounds(id: string, bounds: { x?: number; y?: number; width?: number; height?: number }) {
+  updateBounds(id: string, bounds: { x?: number; y?: number; width?: number; height?: number; isMaximized?: boolean; isShaded?: boolean; isMinimized?: boolean }) {
     this.windows = this.windows.map(w => 
       w.id === id ? { ...w, ...bounds } : w
     );

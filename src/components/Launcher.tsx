@@ -4,6 +4,7 @@ import { SoundManager } from '../kernel/SoundManager';
 import { Search, Sparkles, X, Plus, Pin, PinOff, Terminal, Globe, FileText, Check, Trash2 } from 'lucide-react';
 import { AppDefinition } from '../kernel/types';
 import { Settings } from '../kernel/Settings';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface LauncherProps {
   isOpen: boolean;
@@ -330,12 +331,15 @@ export const Launcher: React.FC<LauncherProps> = ({ isOpen, onClose, onLaunchApp
         </div>
 
         {/* Footer info */}
-        <div className="px-3.5 py-2 border-t border-white/10 bg-[#0d0e14] flex items-center justify-between text-[11px] text-[#5b6478]">
+        <div className="px-3.5 py-2.5 border-t border-white/10 bg-[#0d0e14] flex items-center justify-between text-[11px] text-[#5b6478]">
           <span className="flex items-center gap-1.5">
             <Sparkles className="w-3 h-3 text-[#6ee7b7]" />
             <span>Helix OS Start Menu</span>
           </span>
-          <span>{filtered.length} apps installed</span>
+          <div className="flex items-center gap-3">
+            <PWAInstallButton compact />
+            <span>{filtered.length} apps installed</span>
+          </div>
         </div>
       </div>
     </div>

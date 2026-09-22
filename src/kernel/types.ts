@@ -76,7 +76,14 @@ export type AppId =
   | 'linux-security'
   | 'dev-tools-studio'
   | 'visual-game-engine'
-  | 'universal-utils';
+  | 'universal-utils'
+  | 'retro-emulator'
+  | 'media-player'
+  | 'app-store'
+  | 'sdk-playground'
+  | 'node-webcontainer'
+  | 'jslinux-hypervisor'
+  | 'dev-workspace';
 
 declare global {
   interface Window {

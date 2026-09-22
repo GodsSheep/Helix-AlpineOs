@@ -4,10 +4,10 @@ export class AppRegistry {
   private static apps: AppDefinition[] = [
     {
       id: 'machine',
-      title: 'Alpine Host Engine',
+      title: 'Helix Engine',
       icon: '⚡',
       category: 'System',
-      description: 'v86 x86 VM with Alpine Linux, hardware BIOS, snapshots and RPC bus.',
+      description: 'x86 virtual machine with Linux, hardware BIOS, snapshots and RPC bus.',
       width: 680,
       height: 520,
       pinnedToDock: true,
@@ -17,7 +17,7 @@ export class AppRegistry {
       id: 'term',
       title: 'Terminal',
       icon: '🖥️',
-      category: 'Development',
+      category: 'System',
       description: 'Direct interactive shell connected to the Alpine host engine.',
       width: 540,
       height: 380,
@@ -37,10 +37,10 @@ export class AppRegistry {
     },
     {
       id: 'setup',
-      title: 'Mega Setup & Kernel Hub',
+      title: 'Mega Setup & System Hub',
       icon: '🛠️',
       category: 'System',
-      description: 'One-click installer for system kernels, AI model weights, Android ART runtimes, and Wine win32 layers.',
+      description: 'One-click installer for system kernels, AI model weights, and runtime layers.',
       width: 760,
       height: 560,
       pinnedToDock: true,
@@ -48,7 +48,7 @@ export class AppRegistry {
     },
     {
       id: 'linux-security',
-      title: 'Linux Security & Hardening Suite',
+      title: 'Linux Security Suite',
       icon: '🛡️',
       category: 'Utilities',
       description: 'Comprehensive open-source Linux security suite with Lynis audits, AppArmor/SELinux profiles, auditd logs, fail2ban rules, OpenSSL crypto workbench, and CIS benchmarks.',
@@ -59,7 +59,7 @@ export class AppRegistry {
     },
     {
       id: 'dev-tools-studio',
-      title: 'Developer Tools Studio',
+      title: 'Developer Workbench',
       icon: '⚡',
       category: 'Development',
       description: 'All-in-one developer workbench: code formatters, AST parser, regex debugger, HTTP/REST API test console, multi-format encoders/decoders, JSON schema validator, and visual diff.',
@@ -70,7 +70,7 @@ export class AppRegistry {
     },
     {
       id: 'visual-game-engine',
-      title: 'Visual Game Engine (No-Code)',
+      title: 'Visual Game Engine',
       icon: '🎮',
       category: 'Games',
       description: 'Node-based visual scripting 2D game engine. Design levels, wire event triggers, actions, physics, sound, and playtest immediately without code.',
@@ -90,20 +90,14 @@ export class AppRegistry {
       pinnedToDock: true,
       iconBg: 'bg-gradient-to-tr from-amber-600/35 to-yellow-500/20 border-amber-500/30 text-amber-300'
     },
-    {
-      id: 'store',
-      title: 'App Store',
-      icon: '📦',
-      category: 'Utilities',
-      description: 'Package repository to install system tools.',
-      width: 460,
-      height: 460,
-      pinnedToDock: true,
-      iconBg: 'bg-gradient-to-tr from-purple-600/35 to-pink-500/20 border-purple-500/30 text-purple-300'
-    },
+/* 
+    Removed: 
+    - store (redundant with app-store)
+    - game-snake, game-spaceinvaders, game-pong, game-memory, game-wordle (redundant games)
+    */
     {
       id: 'chroot',
-      title: 'Chroot Sandbox Studio',
+      title: 'Chroot Sandbox',
       icon: '🛡️',
       category: 'System',
       description: 'POSIX filesystem isolation, rootfs virtualization, multi-distro sandboxing and security audits.',
@@ -826,6 +820,83 @@ export class AppRegistry {
       height: 580,
       pinnedToDock: true,
       iconBg: 'bg-gradient-to-tr from-purple-600/40 to-emerald-500/30 border-purple-500/40 text-emerald-200'
+    },
+    {
+      id: 'retro-emulator',
+      title: 'Retro Emulator & PC Runtime',
+      icon: '🕹️',
+      category: 'Games',
+      description: 'CHIP-8 MicroVM, 8-bit space arcade, retro console engine, scanline CRT filters, and save states.',
+      width: 800,
+      height: 560,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-violet-600/40 to-pink-500/30 border-violet-500/40 text-violet-200'
+    },
+    {
+      id: 'media-player',
+      title: 'Media Player & Audio Visualizer',
+      icon: '🎵',
+      category: 'Utilities',
+      description: 'High-fidelity audio & video playback engine with real-time Web Audio API spectrum visualizers and equalizer.',
+      width: 780,
+      height: 540,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-cyan-600/40 to-blue-500/30 border-cyan-500/40 text-cyan-200'
+    },
+    {
+      id: 'app-store',
+      title: 'App Store & Package Hub',
+      icon: '🛍️',
+      category: 'System',
+      description: 'Curated cloud applications, 1-click packages, sandbox permissions, and developer distribution (Puter.com & OS.js model).',
+      width: 860,
+      height: 600,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-emerald-600/40 to-teal-500/30 border-emerald-500/40 text-emerald-200'
+    },
+    {
+      id: 'sdk-playground',
+      title: 'Developer SDK Studio',
+      icon: '🧪',
+      category: 'Development',
+      description: 'Interactive JavaScript API playground for window.helix (VFS, AI copilot, KV store, UI launchers, IPC message bus).',
+      width: 860,
+      height: 580,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-violet-600/40 to-indigo-500/30 border-violet-500/40 text-violet-200'
+    },
+    {
+      id: 'node-webcontainer',
+      title: 'Node.js WebContainers',
+      icon: '⚡',
+      category: 'Development',
+      description: 'StackBlitz-inspired in-browser Node.js micro-OS runtime with npm, Express server, and live web preview.',
+      width: 880,
+      height: 600,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-emerald-600/40 to-green-500/30 border-emerald-500/40 text-emerald-200'
+    },
+    {
+      id: 'jslinux-hypervisor',
+      title: 'Generic Hypervisor',
+      icon: '⚙️',
+      category: 'System',
+      description: 'Fabrice Bellard inspired multi-architecture hypervisor: x86 IA-32, RISC-V 64-bit.',
+      width: 880,
+      height: 600,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-cyan-600/40 to-blue-500/30 border-cyan-500/40 text-cyan-200'
+    },
+    {
+      id: 'dev-workspace',
+      title: 'Dev Workspace',
+      icon: '💻',
+      category: 'Development',
+      description: 'Full Git cloning, build, run, and Python environment management workspace.',
+      width: 800,
+      height: 500,
+      pinnedToDock: true,
+      iconBg: 'bg-gradient-to-tr from-blue-600/40 to-cyan-500/30 border-blue-500/40 text-blue-200'
     },
   ];
 

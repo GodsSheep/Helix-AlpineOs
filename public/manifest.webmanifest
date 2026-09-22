@@ -1,14 +1,16 @@
 {
   "id": "/",
   "name": "Helix OS",
-  "short_name": "Helix",
-  "description": "Web-based desktop environment with Alpine Linux host engine, terminal, code editor, and virtual file system.",
+  "short_name": "Helix OS",
+  "description": "Next-gen web desktop with Alpine Linux engine, System Intelligence discovery, WebContainers, and JSLinux Hypervisor.",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "start_url": "/",
   "scope": "/",
   "orientation": "any",
   "background_color": "#07080B",
   "theme_color": "#07080B",
+  "categories": ["utilities", "developer tools", "productivity", "system"],
   "icons": [
     {
       "src": "/pwa-192x192.png",
@@ -33,6 +35,43 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Terminal",
+      "short_name": "Terminal",
+      "description": "Open Alpine Linux Terminal",
+      "url": "/?app=terminal",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Node WebContainers",
+      "short_name": "Node.js",
+      "description": "Open Node.js WebContainers Studio",
+      "url": "/?app=node-webcontainer",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "JSLinux Hypervisor",
+      "short_name": "Hypervisor",
+      "description": "Open JSLinux Multi-Arch Hypervisor",
+      "url": "/?app=jslinux-hypervisor",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "File Manager",
+      "short_name": "Files",
+      "description": "Open Helix Virtual File Manager",
+      "url": "/?app=files",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "App Store",
+      "short_name": "Store",
+      "description": "Browse & Install Helix Apps",
+      "url": "/?app=app-store",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
     }
   ]
 }

@@ -3,6 +3,7 @@ import { Kernel, VFSFile } from '../../kernel';
 import { SoundManager } from '../../kernel/SoundManager';
 import { HostKernelBridge } from '../../kernel/HostKernelBridge';
 import { Toast } from '../../kernel/Toast';
+import { FileAssociationManager } from '../../kernel/FileAssociationManager';
 import { 
   Folder, 
   File, 
@@ -142,9 +143,8 @@ export const FilesApp: React.FC<FilesAppProps> = ({ onOpenFileInEditor }) => {
   const handleFileInteraction = (file: VFSFile) => {
     const now = Date.now();
     if (lastClickTimeRef.current.id === `file_${file.path}` && now - lastClickTimeRef.current.time < 350) {
-      // Double click or double tap -> open in editor
-      SoundManager.play('open');
-      onOpenFileInEditor(file.path);
+      // Double click or double tap -> open in associated default app
+      FileAssociationManager.openFile(file.path);
       lastClickTimeRef.current = { id: '', time: 0 };
     } else {
       SoundManager.play('click');

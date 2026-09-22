@@ -221,17 +221,29 @@ export const TerminalApp: React.FC = () => {
       return;
     }
 
-    // Auto-package helper: automatically update before install
-    let commandToExecute = command;
+    // Upgrade: Map developer commands to Kernel.vm host bridge
     const trimCmd = command.trim();
-    if (trimCmd.startsWith('apk add ')) {
-      commandToExecute = 'apk update && ' + trimCmd;
-    } else if (trimCmd.startsWith('apt install ') || trimCmd.startsWith('apt-get install ')) {
-      commandToExecute = 'apt-get update && ' + trimCmd;
-    } else if (trimCmd.startsWith('pacman -S ')) {
-      commandToExecute = 'pacman -Sy && ' + trimCmd;
-    } else if (trimCmd.startsWith('dnf install ') || trimCmd.startsWith('yum install ')) {
-      commandToExecute = 'dnf check-update && ' + trimCmd;
+    let commandToExecute = command; // Redefine for the general case
+    if (trimCmd.startsWith('git ') || trimCmd.startsWith('npm ') || trimCmd.startsWith('node ') || trimCmd.startsWith('pip ')) {
+      setHistory((prev) => [
+        ...prev,
+        { id: Math.random().toString(), type: 'system', text: `Proxying '${trimCmd}' to host execution engine...` },
+      ]);
+      try {
+        const output = await Kernel.vm.executeCommand(trimCmd);
+        setHistory((prev) => [
+          ...prev,
+          { id: Math.random().toString(), type: 'out', text: output || `Command '${trimCmd}' completed.` },
+        ]);
+        return;
+      } catch (err: any) {
+        SoundManager.play('error');
+        setHistory((prev) => [
+          ...prev,
+          { id: Math.random().toString(), type: 'err', text: `Execution error: ${err.message}` },
+        ]);
+        return;
+      }
     }
 
     setIsRunning(true);

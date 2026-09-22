@@ -310,14 +310,16 @@ export default defineConfig(() => {
             includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg'],
             manifest: {
               id: '/',
-              name: 'Helix Alpine Desktop',
-              short_name: 'HelixAlpine',
-              description: 'Professional Linux-like desktop experience.',
-              theme_color: '#050608',
-              background_color: '#050608',
+              name: 'Helix OS',
+              short_name: 'Helix OS',
+              description: 'Next-gen web desktop with Alpine Linux engine, System Intelligence discovery, WebContainers, and JSLinux Hypervisor.',
+              theme_color: '#07080B',
+              background_color: '#07080B',
               display: 'standalone',
+              display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'],
               start_url: '/',
               scope: '/',
+              categories: ['utilities', 'developer tools', 'productivity', 'system'],
               icons: [
                 {
                   src: '/pwa-192x192.png',
@@ -337,11 +339,54 @@ export default defineConfig(() => {
                   type: 'image/png',
                   purpose: 'maskable',
                 },
+                {
+                  src: '/icon.svg',
+                  sizes: 'any',
+                  type: 'image/svg+xml',
+                  purpose: 'any',
+                },
+              ],
+              shortcuts: [
+                {
+                  name: 'Terminal',
+                  short_name: 'Terminal',
+                  description: 'Open Alpine Linux Terminal',
+                  url: '/?app=terminal',
+                  icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }],
+                },
+                {
+                  name: 'Node WebContainers',
+                  short_name: 'Node.js',
+                  description: 'Open Node.js WebContainers Studio',
+                  url: '/?app=node-webcontainer',
+                  icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }],
+                },
+                {
+                  name: 'JSLinux Hypervisor',
+                  short_name: 'Hypervisor',
+                  description: 'Open JSLinux Multi-Arch Hypervisor',
+                  url: '/?app=jslinux-hypervisor',
+                  icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }],
+                },
+                {
+                  name: 'File Manager',
+                  short_name: 'Files',
+                  description: 'Open Helix Virtual File Manager',
+                  url: '/?app=files',
+                  icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }],
+                },
+                {
+                  name: 'App Store',
+                  short_name: 'Store',
+                  description: 'Browse & Install Helix Apps',
+                  url: '/?app=app-store',
+                  icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }],
+                },
               ],
             },
             workbox: {
               maximumFileSizeToCacheInBytes: 50 * 1024 * 1024, // 50MiB for full ISO/WASM/ROM images
-              globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,bin,iso}'],
+              globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,bin,iso,woff,woff2}'],
               runtimeCaching: [
                 {
                   urlPattern: /\/v86\/.*/i,
@@ -392,8 +437,8 @@ export default defineConfig(() => {
                   options: {
                     cacheName: 'helix-images-cache',
                     expiration: {
-                      maxEntries: 50,
-                      maxAgeSeconds: 60 * 60 * 24 * 14,
+                      maxEntries: 100,
+                      maxAgeSeconds: 60 * 60 * 24 * 30,
                       purgeOnQuotaError: true,
                     },
                   },
@@ -404,18 +449,43 @@ export default defineConfig(() => {
                   options: {
                     cacheName: 'helix-static-resources',
                     expiration: {
-                      maxEntries: 50,
-                      maxAgeSeconds: 60 * 60 * 24 * 7,
+                      maxEntries: 100,
+                      maxAgeSeconds: 60 * 60 * 24 * 14,
                     },
                   },
                 },
               ],
             },
             devOptions: {
-              enabled: false,
+              enabled: true,
+              type: 'module',
             },
         })
     ],
+    build: {
+      target: 'esnext',
+      minify: 'esbuild',
+      cssCodeSplit: true,
+      chunkSizeWarningLimit: 3000,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+              return 'vendor-react';
+            }
+            if (id.includes('node_modules/lucide-react/')) {
+              return 'vendor-lucide';
+            }
+            if (id.includes('node_modules/motion/')) {
+              return 'vendor-motion';
+            }
+            if (id.includes('node_modules/@google/genai/')) {
+              return 'vendor-gemini';
+            }
+          }
+        }
+      }
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
